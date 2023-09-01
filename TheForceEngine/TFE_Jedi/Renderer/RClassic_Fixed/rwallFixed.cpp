@@ -13,6 +13,10 @@
 #include "rclassicFixedSharedState.h"
 #include "../rcommon.h"
 #include "../jediRenderer.h"
+#ifdef __AMIGA__
+#define s_width (320)
+#define s_height (200)
+#endif
 
 namespace TFE_Jedi
 {
@@ -36,14 +40,31 @@ namespace RClassic_Fixed
 	static u8* s_texImage;
 	static u8* s_columnOut;
 	static u8  s_workBuffer[WAX_DECOMPRESS_SIZE];
+#ifdef __AMIGA__
+	static s32 s_xPixelCount;
+	#define SPRTEST
+#endif
 
+#ifdef __AMIGA__
+	static inline
+#endif
 	s32 segmentCrossesLine(fixed16_16 ax0, fixed16_16 ay0, fixed16_16 ax1, fixed16_16 ay1, fixed16_16 bx0, fixed16_16 by0, fixed16_16 bx1, fixed16_16 by1);
+#ifdef __AMIGA__
+	static inline
+#endif
 	fixed16_16 solveForZ_Numerator(RWallSegmentFixed* wallSegment);
+#ifdef __AMIGA__
+	static inline
+#endif
 	fixed16_16 solveForZ(RWallSegmentFixed* wallSegment, s32 x, fixed16_16 numerator, fixed16_16* outViewDx=nullptr);
 	void drawColumn_Fullbright();
 	void drawColumn_Lit();
 	void drawColumn_Fullbright_Trans();
 	void drawColumn_Lit_Trans();
+#ifdef __AMIGA__
+	static inline
+#endif
+	void wall_addAdjoinSegment(s32 length, s32 x0, fixed16_16 top_dydx, fixed16_16 y1, fixed16_16 bot_dydx, fixed16_16 y0, RWallSegmentFixed* wallSegment);
 
 	// Column rendering functions that can be chosen at runtime.
 	enum ColumnFuncId
@@ -57,6 +78,20 @@ namespace RClassic_Fixed
 	};
 
 	typedef void(*ColumnFunction)();
+#ifdef __AMIGA__
+	void drawColumnS_Fullbright();
+	void drawColumnS_Lit();
+	void drawColumnS_Fullbright_Trans();
+	void drawColumnS_Lit_Trans();
+
+	ColumnFunction s_columnFunc[COLFUNC_COUNT] =
+	{
+		drawColumnS_Fullbright,			// COLFUNC_FULLBRIGHT
+		drawColumnS_Lit,					// COLFUNC_LIT
+		drawColumnS_Fullbright_Trans,	// COLFUNC_FULLBRIGHT_TRANS
+		drawColumnS_Lit_Trans,			// COLFUNC_LIT_TRANS
+	};
+#else
 	ColumnFunction s_columnFunc[COLFUNC_COUNT] =
 	{
 		drawColumn_Fullbright,			// COLFUNC_FULLBRIGHT
@@ -64,11 +99,20 @@ namespace RClassic_Fixed
 		drawColumn_Fullbright_Trans,	// COLFUNC_FULLBRIGHT_TRANS
 		drawColumn_Lit_Trans,			// COLFUNC_LIT_TRANS
 	};
+#endif
 
+#ifdef __AMIGA__
+	static inline
+#endif
 	fixed16_16 frustumIntersect(fixed16_16 x0, fixed16_16 z0, fixed16_16 x1, fixed16_16 z1, fixed16_16 dx, fixed16_16 dz)
 	{
 		fixed16_16 xz;
+#if defined(__AMIGA__) && defined(__mc68060__)
+		// this is closer to the original behavior when an overflow happens
+		xz = floatToFixed16(fixed16ToFloat(x0) * fixed16ToFloat(z1) - fixed16ToFloat(z0) * fixed16ToFloat(x1));
+#else
 		xz = mul16(x0, z1) - mul16(z0, x1);
+#endif
 		fixed16_16 dyx = dz - dx;
 		if (dyx != 0)
 		{
@@ -304,8 +348,13 @@ namespace RClassic_Fixed
 		// Project.
 		//////////////////////////////////////////////////
 		s32 x0pixel, x1pixel;
+#ifdef __AMIGA__
+		fixed16_16 x0proj = div16(x0 * s_rcfState.focalLength, z0) + s_rcfState.projOffsetX;
+		fixed16_16 x1proj = div16(x1 * s_rcfState.focalLength, z1) + s_rcfState.projOffsetX;
+#else
 		fixed16_16 x0proj = div16(mul16(x0, s_rcfState.focalLength), z0) + s_rcfState.projOffsetX;
 		fixed16_16 x1proj = div16(mul16(x1, s_rcfState.focalLength), z1) + s_rcfState.projOffsetX;
+#endif
 		x0pixel = round16(x0proj);
 		x1pixel = round16(x1proj) - 1;
 		
@@ -675,6 +724,9 @@ namespace RClassic_Fixed
 		return outIndex;
 	}
 
+#ifdef __AMIGA__
+	static inline
+#endif
 	TextureData* setupSignTexture(RWall* srcWall, fixed16_16* signU0, fixed16_16* signU1, ColumnFunction* signFullbright, ColumnFunction* signLit)
 	{
 		if (!srcWall->signTex) { return nullptr; }
@@ -723,10 +775,19 @@ namespace RClassic_Fixed
 		fixed16_16 z1 = wallSegment->z1;
 
 		fixed16_16 y0C, y0F, y1C, y1F;
+#ifdef __AMIGA__
+		const fixed16_16 rcpZ0 = div16(ONE_16, z0);
+		const fixed16_16 rcpZ1 = div16(ONE_16, z1);
+		y0C = mul16((ceilEyeRel  * s_rcfState.focalLenAspect), rcpZ0) + s_rcfState.projOffsetY;
+		y1C = mul16((ceilEyeRel  * s_rcfState.focalLenAspect), rcpZ1) + s_rcfState.projOffsetY;
+		y0F = mul16((floorEyeRel * s_rcfState.focalLenAspect), rcpZ0) + s_rcfState.projOffsetY;
+		y1F = mul16((floorEyeRel * s_rcfState.focalLenAspect), rcpZ1) + s_rcfState.projOffsetY;
+#else
 		y0C = div16(mul16(ceilEyeRel,  s_rcfState.focalLenAspect), z0) + s_rcfState.projOffsetY;
 		y1C = div16(mul16(ceilEyeRel,  s_rcfState.focalLenAspect), z1) + s_rcfState.projOffsetY;
 		y0F = div16(mul16(floorEyeRel, s_rcfState.focalLenAspect), z0) + s_rcfState.projOffsetY;
 		y1F = div16(mul16(floorEyeRel, s_rcfState.focalLenAspect), z1) + s_rcfState.projOffsetY;
+#endif
 
 		s32 y0C_pixel = round16(y0C);
 		s32 y1C_pixel = round16(y1C);
@@ -759,6 +820,20 @@ namespace RClassic_Fixed
 		ColumnFunction signFullbright = nullptr, signLit = nullptr;
 		TextureData* signTex = setupSignTexture(srcWall, &signU0, &signU1, &signFullbright, &signLit);
 
+#ifdef __AMIGA__
+		s32 wallDeltaX = wallSegment->wallX1_raw - wallSegment->wallX0_raw;
+		fixed16_16 dYdXtop = 0, dYdXbot = 0;
+		if (wallDeltaX != 0)
+		{
+			/*
+			dYdXtop = (y1C - y0C) / wallDeltaX;
+			dYdXbot = (y1F - y0F) / wallDeltaX;
+			*/
+			const fixed16_16 rcpWallDeltaX = ONE_16 / wallDeltaX;
+			dYdXtop = mul16(y1C - y0C, rcpWallDeltaX);
+			dYdXbot = mul16(y1F - y0F, rcpWallDeltaX);
+		}
+#else
 		fixed16_16 wallDeltaX = intToFixed16(wallSegment->wallX1_raw - wallSegment->wallX0_raw);
 		fixed16_16 dYdXtop = 0, dYdXbot = 0;
 		if (wallDeltaX != 0)
@@ -766,13 +841,23 @@ namespace RClassic_Fixed
 			dYdXtop = div16(y1C - y0C, wallDeltaX);
 			dYdXbot = div16(y1F - y0F, wallDeltaX);
 		}
+#endif
 
+#ifdef __AMIGA__
+		s32 clippedXDelta = wallSegment->wallX0 - wallSegment->wallX0_raw;
+		if (clippedXDelta != 0)
+		{
+			y0C += dYdXtop * clippedXDelta;
+			y0F += dYdXbot * clippedXDelta;
+		}
+#else
 		fixed16_16 clippedXDelta = intToFixed16(wallSegment->wallX0 - wallSegment->wallX0_raw);
 		if (clippedXDelta != 0)
 		{
 			y0C += mul16(dYdXtop, clippedXDelta);
 			y0F += mul16(dYdXbot, clippedXDelta);
 		}
+#endif
 		flat_addEdges(length, wallSegment->wallX0, dYdXbot, y0F, dYdXtop, y0C);
 
 		const s32 texWidth = texture ? texture->width : 0;
@@ -838,8 +923,14 @@ namespace RClassic_Fixed
 				// Handle the "sign texture" - a wall overlay.
 				if (signTex && uCoord >= signU0 && uCoord <= signU1)
 				{
+#ifdef __AMIGA__
+					const fixed16_16 rcpVCoordStep = div16(ONE_16, s_vCoordStep);
+					fixed16_16 signYbot = y0F + mul16(srcWall->signOffset.z, rcpVCoordStep);
+					fixed16_16 signYtop = signYbot - mul16(intToFixed16(signTex->height), rcpVCoordStep) + ONE_16;
+#else
 					fixed16_16 signYbot = y0F + div16(srcWall->signOffset.z, s_vCoordStep);
 					fixed16_16 signYtop = signYbot - div16(intToFixed16(signTex->height), s_vCoordStep) + ONE_16;
+#endif
 					s32 y0 = max(round16(signYtop), top);
 					s32 y1 = min(round16(signYbot), bot);
 					s_yPixelCount = y1 - y0 + 1;
@@ -957,8 +1048,13 @@ namespace RClassic_Fixed
 		else
 		{
 			fixed16_16 ceilRel = sector->ceilingHeight - s_rcfState.eyeHeight;
+#ifdef __AMIGA__
+			cProj0 = div16((ceilRel * s_rcfState.focalLenAspect), z0) + s_rcfState.projOffsetY;
+			cProj1 = div16((ceilRel * s_rcfState.focalLenAspect), z1) + s_rcfState.projOffsetY;
+#else
 			cProj0 = div16(mul16(ceilRel, s_rcfState.focalLenAspect), z0) + s_rcfState.projOffsetY;
 			cProj1 = div16(mul16(ceilRel, s_rcfState.focalLenAspect), z1) + s_rcfState.projOffsetY;
+#endif
 		}
 
 		s32 c0pixel = round16(cProj0);
@@ -988,8 +1084,13 @@ namespace RClassic_Fixed
 		else
 		{
 			fixed16_16 floorRel = sector->floorHeight - s_rcfState.eyeHeight;
+#ifdef __AMIGA__
+			fProj0 = div16((floorRel * s_rcfState.focalLenAspect), z0) + s_rcfState.projOffsetY;
+			fProj1 = div16((floorRel * s_rcfState.focalLenAspect), z1) + s_rcfState.projOffsetY;
+#else
 			fProj0 = div16(mul16(floorRel, s_rcfState.focalLenAspect), z0) + s_rcfState.projOffsetY;
 			fProj1 = div16(mul16(floorRel, s_rcfState.focalLenAspect), z1) + s_rcfState.projOffsetY;
+#endif
 		}
 
 		s32 f0pixel = round16(fProj0);
@@ -1011,26 +1112,55 @@ namespace RClassic_Fixed
 			return;
 		}
 
+#ifdef __AMIGA__
+		s32 xStartOffset = wallSegment->wallX0 - wallSegment->wallX0_raw;
+#else
 		fixed16_16 xStartOffset = intToFixed16(wallSegment->wallX0 - wallSegment->wallX0_raw);
+#endif
 		s32 length = wallSegment->wallX1 - wallSegment->wallX0 + 1;
 
 		fixed16_16 numerator = solveForZ_Numerator(wallSegment);
+#ifdef __AMIGA__
+		s32 lengthRaw = wallSegment->wallX1_raw - wallSegment->wallX0_raw;
+#else
 		fixed16_16 lengthRaw = intToFixed16(wallSegment->wallX1_raw - wallSegment->wallX0_raw);
+#endif
 		fixed16_16 dydxCeil = 0;
 		fixed16_16 dydxFloor = 0;
+#ifdef __AMIGA__
+		if (lengthRaw != 0)
+		{
+			/*
+			dydxCeil  = (cProj1 - cProj0) / lengthRaw;
+			dydxFloor = (fProj1 - fProj0) / lengthRaw;
+			*/
+			const fixed16_16 rcpLengthRaw = ONE_16 / lengthRaw;
+			dydxCeil  = mul16(cProj1 - cProj0, rcpLengthRaw);
+			dydxFloor = mul16(fProj1 - fProj0, rcpLengthRaw);
+		}
+#else
 		if (lengthRaw != 0)
 		{
 			dydxCeil  = div16(cProj1 - cProj0, lengthRaw);
 			dydxFloor = div16(fProj1 - fProj0, lengthRaw);
 		}
+#endif
 		fixed16_16 y0 = cProj0;
 		fixed16_16 y1 = fProj0;
 		s32 x = wallSegment->wallX0;
+#ifdef __AMIGA__
+		if (xStartOffset != 0)
+		{
+			y0 = (dydxCeil * xStartOffset) + cProj0;
+			y1 = (dydxFloor * xStartOffset) + fProj0;
+		}
+#else
 		if (xStartOffset != 0)
 		{
 			y0 = mul16(dydxCeil, xStartOffset) + cProj0;
 			y1 = mul16(dydxFloor, xStartOffset) + fProj0;
 		}
+#endif
 
 		flat_addEdges(length, x, dydxFloor, y1, dydxCeil, y0);
 		fixed16_16 nextFloor = nextSector->floorHeight;
@@ -1078,8 +1208,13 @@ namespace RClassic_Fixed
 		else
 		{
 			fixed16_16 ceilRel = sector->ceilingHeight - s_rcfState.eyeHeight;
+#ifdef __AMIGA__
+			cProj0 = div16((ceilRel * s_rcfState.focalLenAspect), z0) + s_rcfState.projOffsetY;
+			cProj1 = div16((ceilRel * s_rcfState.focalLenAspect), z1) + s_rcfState.projOffsetY;
+#else
 			cProj0 = div16(mul16(ceilRel, s_rcfState.focalLenAspect), z0) + s_rcfState.projOffsetY;
 			cProj1 = div16(mul16(ceilRel, s_rcfState.focalLenAspect), z1) + s_rcfState.projOffsetY;
+#endif
 		}
 
 		s32 cy0 = round16(cProj0);
@@ -1104,8 +1239,13 @@ namespace RClassic_Fixed
 
 		fixed16_16 floorRel = sector->floorHeight - s_rcfState.eyeHeight;
 		fixed16_16 fProj0, fProj1;
+#ifdef __AMIGA__
+		fProj0 = div16((floorRel * s_rcfState.focalLenAspect), z0) + s_rcfState.projOffsetY;
+		fProj1 = div16((floorRel * s_rcfState.focalLenAspect), z1) + s_rcfState.projOffsetY;
+#else
 		fProj0 = div16(mul16(floorRel, s_rcfState.focalLenAspect), z0) + s_rcfState.projOffsetY;
 		fProj1 = div16(mul16(floorRel, s_rcfState.focalLenAspect), z1) + s_rcfState.projOffsetY;
+#endif
 
 		s32 fy0 = round16(fProj0);
 		s32 fy1 = round16(fProj1);
@@ -1130,8 +1270,13 @@ namespace RClassic_Fixed
 
 		fixed16_16 floorRelNext = nextSector->floorHeight - s_rcfState.eyeHeight;
 		fixed16_16 fNextProj0, fNextProj1;
+#ifdef __AMIGA__
+		fNextProj0 = div16((floorRelNext * s_rcfState.focalLenAspect), z0) + s_rcfState.projOffsetY;
+		fNextProj1 = div16((floorRelNext * s_rcfState.focalLenAspect), z1) + s_rcfState.projOffsetY;
+#else
 		fNextProj0 = div16(mul16(floorRelNext, s_rcfState.focalLenAspect), z0) + s_rcfState.projOffsetY;
 		fNextProj1 = div16(mul16(floorRelNext, s_rcfState.focalLenAspect), z1) + s_rcfState.projOffsetY;
+#endif
 
 		s32 xOffset = wallSegment->wallX0 - wallSegment->wallX0_raw;
 		s32 length = wallSegment->wallX1 - wallSegment->wallX0 + 1;
@@ -1142,6 +1287,26 @@ namespace RClassic_Fixed
 		fixed16_16 floorNext_dYdX = 0;
 		fixed16_16 floor_dYdX = 0;
 		fixed16_16 ceil_dYdX = 0;
+#ifdef __AMIGA__
+		if (lengthRaw != 0)
+		{
+/*
+			floorNext_dYdX = (fNextProj1 - fNextProj0) / lengthRaw;
+			floor_dYdX = (fProj1 - fProj0) / lengthRaw;
+			ceil_dYdX = (cProj1 - cProj0) / lengthRaw;
+*/
+			const fixed16_16 rcpLengthRawFixed = ONE_16 / lengthRaw;
+			floorNext_dYdX = mul16(fNextProj1 - fNextProj0, rcpLengthRawFixed);
+			floor_dYdX = mul16(fProj1 - fProj0, rcpLengthRawFixed);
+			ceil_dYdX = mul16(cProj1 - cProj0, rcpLengthRawFixed);
+		}
+		if (xOffset)
+		{
+			fNextProj0 += floorNext_dYdX * xOffset;
+			fProj0 += floor_dYdX * xOffset;
+			cProj0 += ceil_dYdX * xOffset;
+		}
+#else
 		if (lengthRawFixed != 0)
 		{
 			floorNext_dYdX = div16(fNextProj1 - fNextProj0, lengthRawFixed);
@@ -1154,6 +1319,7 @@ namespace RClassic_Fixed
 			fProj0 += mul16(floor_dYdX, xOffsetFixed);
 			cProj0 += mul16(ceil_dYdX, xOffsetFixed);
 		}
+#endif
 
 		fixed16_16 yTop = fNextProj0;
 		fixed16_16 yC = cProj0;
@@ -1257,8 +1423,14 @@ namespace RClassic_Fixed
 					// Handle the "sign texture" - a wall overlay.
 					if (signTex && uCoord >= signU0 && uCoord <= signU1)
 					{
+#ifdef __AMIGA__
+						const fixed16_16 rcpVCoordStep = div16(ONE_16, s_vCoordStep);
+						fixed16_16 signYBase = yBot + mul16(wall->signOffset.z, rcpVCoordStep);
+						s32 y0 = max(floor16(signYBase - mul16(intToFixed16(signTex->height), rcpVCoordStep) + ONE_16 + HALF_16), yTop_pixel);
+#else
 						fixed16_16 signYBase = yBot + div16(wall->signOffset.z, s_vCoordStep);
 						s32 y0 = max(floor16(signYBase - div16(intToFixed16(signTex->height), s_vCoordStep) + ONE_16 + HALF_16), yTop_pixel);
+#endif
 						s32 y1 = min(floor16(signYBase + HALF_16), yBot_pixel);
 						s_yPixelCount = y1 - y0 + 1;
 
@@ -1308,8 +1480,13 @@ namespace RClassic_Fixed
 
 		fixed16_16 ceilRel = sector->ceilingHeight - s_rcfState.eyeHeight;
 		fixed16_16 yC0, yC1;
+#ifdef __AMIGA__
+		yC0 = div16((ceilRel * s_rcfState.focalLenAspect), z0) + s_rcfState.projOffsetY;
+		yC1 = div16((ceilRel * s_rcfState.focalLenAspect), z1) + s_rcfState.projOffsetY;
+#else
 		yC0 = div16(mul16(ceilRel, s_rcfState.focalLenAspect), z0) + s_rcfState.projOffsetY;
 		yC1 = div16(mul16(ceilRel, s_rcfState.focalLenAspect), z1) + s_rcfState.projOffsetY;
+#endif
 
 		s32 yC0_pixel = round16(yC0);
 		s32 yC1_pixel = round16(yC1);
@@ -1338,8 +1515,13 @@ namespace RClassic_Fixed
 		else
 		{
 			fixed16_16 floorRel = sector->floorHeight - s_rcfState.eyeHeight;
+#ifdef __AMIGA__
+			yF0 = div16((floorRel * s_rcfState.focalLenAspect), z0) + s_rcfState.projOffsetY;
+			yF1 = div16((floorRel * s_rcfState.focalLenAspect), z1) + s_rcfState.projOffsetY;
+#else
 			yF0 = div16(mul16(floorRel, s_rcfState.focalLenAspect), z0) + s_rcfState.projOffsetY;
 			yF1 = div16(mul16(floorRel, s_rcfState.focalLenAspect), z1) + s_rcfState.projOffsetY;
+#endif
 		}
 		s32 yF0_pixel = round16(yF0);
 		s32 yF1_pixel = round16(yF1);
@@ -1359,14 +1541,44 @@ namespace RClassic_Fixed
 
 		fixed16_16 next_ceilRel = next->ceilingHeight - s_rcfState.eyeHeight;
 		fixed16_16 next_yC0, next_yC1;
+#ifdef __AMIGA__
+		next_yC0 = div16((next_ceilRel * s_rcfState.focalLenAspect), z0) + s_rcfState.projOffsetY;
+		next_yC1 = div16((next_ceilRel * s_rcfState.focalLenAspect), z1) + s_rcfState.projOffsetY;
+#else
 		next_yC0 = div16(mul16(next_ceilRel, s_rcfState.focalLenAspect), z0) + s_rcfState.projOffsetY;
 		next_yC1 = div16(mul16(next_ceilRel, s_rcfState.focalLenAspect), z1) + s_rcfState.projOffsetY;
+#endif
 
+#ifdef __AMIGA__
+		s32 xOffset = wallSegment->wallX0 - wallSegment->wallX0_raw;
+		s32 length = wallSegment->wallX1_raw - wallSegment->wallX0_raw;
+#else
 		fixed16_16 xOffset = intToFixed16(wallSegment->wallX0 - wallSegment->wallX0_raw);
 		fixed16_16 length = intToFixed16(wallSegment->wallX1_raw - wallSegment->wallX0_raw);
+#endif
 		fixed16_16 ceil_dYdX = 0;
 		fixed16_16 next_ceil_dYdX = 0;
 		fixed16_16 floor_dYdX = 0;
+#ifdef __AMIGA__
+		if (length)
+		{
+			/*
+			ceil_dYdX = (yC1 - yC0) / length;
+			next_ceil_dYdX = (next_yC1 - next_yC0) / length;
+			floor_dYdX = (yF1 - yF0) / length;
+			*/
+			const fixed16_16 rcpLength = ONE_16 / length;
+			ceil_dYdX = mul16(yC1 - yC0, rcpLength);
+			next_ceil_dYdX = mul16(next_yC1 - next_yC0, rcpLength);
+			floor_dYdX = mul16(yF1 - yF0, rcpLength);
+		}
+		if (xOffset)
+		{
+			yC0 += ceil_dYdX * xOffset;
+			next_yC0 += next_ceil_dYdX * xOffset;
+			yF0 += floor_dYdX * xOffset;
+		}
+#else
 		if (length)
 		{
 			ceil_dYdX = div16(yC1 - yC0, length);
@@ -1379,6 +1591,7 @@ namespace RClassic_Fixed
 			next_yC0 += mul16(next_ceil_dYdX, xOffset);
 			yF0 += mul16(floor_dYdX, xOffset);
 		}
+#endif
 
 		flat_addEdges(lengthInPixels, x0, floor_dYdX, yF0, ceil_dYdX, yC0);
 		s32 next_yC0_pixel = round16(next_yC0);
@@ -1472,8 +1685,14 @@ namespace RClassic_Fixed
 				// Handle the "sign texture" - a wall overlay.
 				if (signTex && uCoord >= signU0 && uCoord <= signU1)
 				{
+#ifdef __AMIGA__
+					const fixed16_16 rcpVCoordStep = div16(ONE_16, s_vCoordStep);
+					fixed16_16 signYBase = next_yC0 + mul16(srcWall->signOffset.z, rcpVCoordStep);
+					s32 y0 = max(floor16(signYBase - mul16(intToFixed16(signTex->height), rcpVCoordStep) + ONE_16 + HALF_16), yC0_pixel);
+#else
 					fixed16_16 signYBase = next_yC0 + div16(srcWall->signOffset.z, s_vCoordStep);
 					s32 y0 = max(floor16(signYBase - div16(intToFixed16(signTex->height), s_vCoordStep) + ONE_16 + HALF_16), yC0_pixel);
+#endif
 					s32 y1 = min(floor16(signYBase + HALF_16), next_yC0_pixel);
 					s_yPixelCount = y1 - y0 + 1;
 
@@ -1515,14 +1734,32 @@ namespace RClassic_Fixed
 		fixed16_16 z0 = wallSegment->z0;
 		fixed16_16 z1 = wallSegment->z1;
 		s32 x0 = wallSegment->wallX0;
+#ifdef __AMIGA__
+		s32 xOffset = wallSegment->wallX0 - wallSegment->wallX0_raw;
+#else
 		fixed16_16 xOffset   = intToFixed16(wallSegment->wallX0 - wallSegment->wallX0_raw);
+#endif
 		s32 length    =  wallSegment->wallX1 - wallSegment->wallX0 + 1;
+#ifdef __AMIGA__
+		s32 lengthRaw = wallSegment->wallX1_raw - wallSegment->wallX0_raw;
+		fixed16_16 rcpLengthRaw = 0;
+		if (lengthRaw != 0)
+		{
+			rcpLengthRaw = ONE_16 / lengthRaw;
+		}
+#else
 		fixed16_16 lengthRaw = intToFixed16(wallSegment->wallX1_raw - wallSegment->wallX0_raw);
+#endif
 
 		fixed16_16 ceilRel = sector->ceilingHeight - s_rcfState.eyeHeight;
 		fixed16_16 cProj0, cProj1;
+#ifdef __AMIGA__
+		cProj0 = div16((ceilRel * s_rcfState.focalLenAspect), z0) + s_rcfState.projOffsetY;
+		cProj1 = div16((ceilRel * s_rcfState.focalLenAspect), z1) + s_rcfState.projOffsetY;
+#else
 		cProj0 = div16(mul16(ceilRel, s_rcfState.focalLenAspect), z0) + s_rcfState.projOffsetY;
 		cProj1 = div16(mul16(ceilRel, s_rcfState.focalLenAspect), z1) + s_rcfState.projOffsetY;
+#endif
 
 		s32 c0_pixel = round16(cProj0);
 		s32 c1_pixel = round16(cProj1);
@@ -1545,8 +1782,13 @@ namespace RClassic_Fixed
 
 		fixed16_16 floorRel = sector->floorHeight - s_rcfState.eyeHeight;
 		fixed16_16 fProj0, fProj1;
+#ifdef __AMIGA__
+		fProj0 = div16((floorRel * s_rcfState.focalLenAspect), z0) + s_rcfState.projOffsetY;
+		fProj1 = div16((floorRel * s_rcfState.focalLenAspect), z1) + s_rcfState.projOffsetY;
+#else
 		fProj0 = div16(mul16(floorRel, s_rcfState.focalLenAspect), z0) + s_rcfState.projOffsetY;
 		fProj1 = div16(mul16(floorRel, s_rcfState.focalLenAspect), z1) + s_rcfState.projOffsetY;
+#endif
 
 		s32 f0_pixel = round16(fProj0);
 		s32 f1_pixel = round16(fProj1);
@@ -1570,11 +1812,32 @@ namespace RClassic_Fixed
 		RSector* nextSector = srcWall->nextSector;
 		fixed16_16 next_ceilRel = nextSector->ceilingHeight - s_rcfState.eyeHeight;
 		fixed16_16 next_cProj0, next_cProj1;
+#ifdef __AMIGA__
+		next_cProj0 = div16((next_ceilRel * s_rcfState.focalLenAspect), z0) + s_rcfState.projOffsetY;
+		next_cProj1 = div16((next_ceilRel * s_rcfState.focalLenAspect), z1) + s_rcfState.projOffsetY;
+#else
 		next_cProj0 = div16(mul16(next_ceilRel, s_rcfState.focalLenAspect), z0) + s_rcfState.projOffsetY;
 		next_cProj1 = div16(mul16(next_ceilRel, s_rcfState.focalLenAspect), z1) + s_rcfState.projOffsetY;
+#endif
 
 		fixed16_16 ceil_dYdX = 0;
 		fixed16_16 next_ceil_dYdX = 0;
+#ifdef __AMIGA__
+		if (lengthRaw != 0)
+		{
+			/*
+			ceil_dYdX = (cProj1 - cProj0) / lengthRaw;
+			next_ceil_dYdX = (next_cProj1 - next_cProj0) / lengthRaw;
+			*/
+			ceil_dYdX = mul16(cProj1 - cProj0, rcpLengthRaw);
+			next_ceil_dYdX = mul16(next_cProj1 - next_cProj0, rcpLengthRaw);
+		}
+		if (xOffset)
+		{
+			cProj0 += ceil_dYdX * xOffset;
+			next_cProj0 += next_ceil_dYdX * xOffset;
+		}
+#else
 		if (lengthRaw != 0)
 		{
 			ceil_dYdX = div16(cProj1 - cProj0, lengthRaw);
@@ -1585,6 +1848,7 @@ namespace RClassic_Fixed
 			cProj0 += mul16(ceil_dYdX, xOffset);
 			next_cProj0 += mul16(next_ceil_dYdX, xOffset);
 		}
+#endif
 
 		fixed16_16 yC0 = cProj0;
 		fixed16_16 yC1 = next_cProj0;
@@ -1664,11 +1928,32 @@ namespace RClassic_Fixed
 
 		fixed16_16 next_floorRel = nextSector->floorHeight - s_rcfState.eyeHeight;
 		fixed16_16 next_fProj0, next_fProj1;
+#ifdef __AMIGA__
+		next_fProj0 = div16((next_floorRel * s_rcfState.focalLenAspect), z0) + s_rcfState.projOffsetY;
+		next_fProj1 = div16((next_floorRel * s_rcfState.focalLenAspect), z1) + s_rcfState.projOffsetY;
+#else
 		next_fProj0 = div16(mul16(next_floorRel, s_rcfState.focalLenAspect), z0) + s_rcfState.projOffsetY;
 		next_fProj1 = div16(mul16(next_floorRel, s_rcfState.focalLenAspect), z1) + s_rcfState.projOffsetY;
+#endif
 
 		fixed16_16 next_floor_dYdX = 0;
 		fixed16_16 floor_dYdX = 0;
+#ifdef __AMIGA__
+		if (lengthRaw > 0)
+		{
+			/*
+			next_floor_dYdX = (next_fProj1 - next_fProj0) / lengthRaw;
+			floor_dYdX = (fProj1 - fProj0) / lengthRaw;
+			*/
+			next_floor_dYdX = mul16(next_fProj1 - next_fProj0, rcpLengthRaw);
+			floor_dYdX = mul16(fProj1 - fProj0, rcpLengthRaw);
+		}
+		if (xOffset)
+		{
+			next_fProj0 += next_floor_dYdX * xOffset;
+			fProj0 += floor_dYdX * xOffset;
+		}
+#else
 		if (lengthRaw > 0)
 		{
 			next_floor_dYdX = div16(next_fProj1 - next_fProj0, lengthRaw);
@@ -1679,6 +1964,7 @@ namespace RClassic_Fixed
 			next_fProj0 += mul16(next_floor_dYdX, xOffset);
 			fProj0 += mul16(floor_dYdX, xOffset);
 		}
+#endif
 
 		fixed16_16 yF0 = next_fProj0;
 		fixed16_16 yF1 = fProj0;
@@ -1758,8 +2044,14 @@ namespace RClassic_Fixed
 						// Handle the "sign texture" - a wall overlay.
 						if (signTex && uCoord >= signU0 && uCoord <= signU1)
 						{
+#ifdef __AMIGA__
+							const fixed16_16 rcpVCoordStep = div16(ONE_16, s_vCoordStep);
+							fixed16_16 signYBase = yF1 + mul16(srcWall->signOffset.z, rcpVCoordStep);
+							s32 y0 = max(floor16(signYBase - mul16(intToFixed16(signTex->height), rcpVCoordStep) + ONE_16 + HALF_16), yF0_pixel);
+#else
 							fixed16_16 signYBase = yF1 + div16(srcWall->signOffset.z, s_vCoordStep);
 							s32 y0 = max(floor16(signYBase - div16(intToFixed16(signTex->height), s_vCoordStep) + ONE_16 + HALF_16), yF0_pixel);
+#endif
 							s32 y1 = min(floor16(signYBase + HALF_16), yF1_pixel);
 							s_yPixelCount = y1 - y0 + 1;
 
@@ -2003,6 +2295,9 @@ namespace RClassic_Fixed
 	
 	// Determines if segment A is disjoint from the line formed by B - i.e. they do not intersect.
 	// Returns 1 if segment A does NOT cross line B or 0 if it does.
+#ifdef __AMIGA__
+	static inline
+#endif
 	s32 segmentCrossesLine(fixed16_16 ax0, fixed16_16 ay0, fixed16_16 ax1, fixed16_16 ay1, fixed16_16 bx0, fixed16_16 by0, fixed16_16 bx1, fixed16_16 by1)
 	{
 		// Convert from 16 fractional bits to 12.
@@ -2148,10 +2443,371 @@ namespace RClassic_Fixed
 		}
 	}
 
-	void wall_addAdjoinSegment(s32 length, s32 x0, fixed16_16 top_dydx, fixed16_16 y1, fixed16_16 bot_dydx, fixed16_16 y0, RWallSegmentFixed* wallSegment)
+#ifdef __AMIGA__
+	void drawColumnS_Fullbright()
+	{
+		fixed16_16 vCoordFixed = s_vCoordFixed;
+		u8* tex = s_texImage;
+
+		s32 v = floor16(vCoordFixed);
+		s32 end = s_yPixelCount - 1;
+
+		s32 offset = end * s_width;
+		for (s32 i = end; i >= 0; i--, offset -= s_width)
+		{
+			const u8 c = tex[v];
+			vCoordFixed += s_vCoordStep;
+			v = floor16(vCoordFixed);
+			s_columnOut[offset] = c;
+		}
+	}
+
+	void drawColumnS_Lit()
+	{
+		fixed16_16 vCoordFixed = s_vCoordFixed;
+		u8* tex = s_texImage;
+
+		s32 v = floor16(vCoordFixed);
+		s32 end = s_yPixelCount - 1;
+
+		s32 offset = end * s_width;
+		for (s32 i = end; i >= 0; i--, offset -= s_width)
+		{
+			const u8 c = s_columnLight[tex[v]];
+			vCoordFixed += s_vCoordStep;
+			v = floor16(vCoordFixed);
+			s_columnOut[offset] = c;
+		}
+	}
+
+	void drawColumnS_Fullbright_Trans()
+	{
+		fixed16_16 vCoordFixed = s_vCoordFixed;
+		u8* tex = s_texImage;
+
+		s32 v = floor16(vCoordFixed);
+		s32 end = s_yPixelCount - 1;
+
+		s32 offset = end * s_width;
+#ifdef SPRTEST
+		switch (s_xPixelCount+1)
+		{
+		case 1:
+			for (s32 i = end; i >= 0; i--, offset -= s_width)
+			{
+				u8 c = tex[v];
+				vCoordFixed += s_vCoordStep;
+				v = floor16(vCoordFixed);
+				if (c) { s_columnOut[offset] = c; }
+			}
+			break;
+		case 2:
+			for (s32 i = end; i >= 0; i--, offset -= s_width)
+			{
+				u8 c = tex[v];
+				vCoordFixed += s_vCoordStep;
+				v = floor16(vCoordFixed);
+				if (c)
+				{
+					//c = s_xPixelCount; // TODO test
+					s_columnOut[offset] = c;
+					s_columnOut[offset+1] = c;
+				}
+			}
+			break;
+		case 3:
+			for (s32 i = end; i >= 0; i--, offset -= s_width)
+			{
+				u8 c = tex[v];
+				vCoordFixed += s_vCoordStep;
+				v = floor16(vCoordFixed);
+				if (c)
+				{
+					//c = s_xPixelCount; // TODO test
+					s_columnOut[offset] = c;
+					s_columnOut[offset+1] = c;
+					s_columnOut[offset+2] = c;
+				}
+			}
+			break;
+		case 4:
+			for (s32 i = end; i >= 0; i--, offset -= s_width)
+			{
+				u8 c = tex[v];
+				vCoordFixed += s_vCoordStep;
+				v = floor16(vCoordFixed);
+				if (c)
+				{
+					//c = s_xPixelCount; // TODO test
+					s_columnOut[offset] = c;
+					s_columnOut[offset+1] = c;
+					s_columnOut[offset+2] = c;
+					s_columnOut[offset+3] = c;
+				}
+			}
+			break;
+		case 5:
+			for (s32 i = end; i >= 0; i--, offset -= s_width)
+			{
+				u8 c = tex[v];
+				vCoordFixed += s_vCoordStep;
+				v = floor16(vCoordFixed);
+				if (c)
+				{
+					//c = s_xPixelCount; // TODO test
+					s_columnOut[offset] = c;
+					s_columnOut[offset+1] = c;
+					s_columnOut[offset+2] = c;
+					s_columnOut[offset+3] = c;
+					s_columnOut[offset+4] = c;
+				}
+			}
+			break;
+		case 6:
+			for (s32 i = end; i >= 0; i--, offset -= s_width)
+			{
+				u8 c = tex[v];
+				vCoordFixed += s_vCoordStep;
+				v = floor16(vCoordFixed);
+				if (c)
+				{
+					//c = s_xPixelCount; // TODO test
+					s_columnOut[offset] = c;
+					s_columnOut[offset+1] = c;
+					s_columnOut[offset+2] = c;
+					s_columnOut[offset+3] = c;
+					s_columnOut[offset+4] = c;
+					s_columnOut[offset+5] = c;
+				}
+			}
+			break;
+		case 7:
+			for (s32 i = end; i >= 0; i--, offset -= s_width)
+			{
+				u8 c = tex[v];
+				vCoordFixed += s_vCoordStep;
+				v = floor16(vCoordFixed);
+				if (c)
+				{
+					//c = s_xPixelCount; // TODO test
+					s_columnOut[offset] = c;
+					s_columnOut[offset+1] = c;
+					s_columnOut[offset+2] = c;
+					s_columnOut[offset+3] = c;
+					s_columnOut[offset+4] = c;
+					s_columnOut[offset+5] = c;
+					s_columnOut[offset+6] = c;
+				}
+			}
+			break;
+		case 8:
+			for (s32 i = end; i >= 0; i--, offset -= s_width)
+			{
+				u8 c = tex[v];
+				vCoordFixed += s_vCoordStep;
+				v = floor16(vCoordFixed);
+				if (c)
+				{
+					////c = s_xPixelCount; // TODO test
+					s_columnOut[offset] = c;
+					s_columnOut[offset+1] = c;
+					s_columnOut[offset+2] = c;
+					s_columnOut[offset+3] = c;
+					s_columnOut[offset+4] = c;
+					s_columnOut[offset+5] = c;
+					s_columnOut[offset+6] = c;
+					s_columnOut[offset+7] = c;
+				}
+			}
+			break;
+		default:
+			//kprintf("unhandled width %ld\n", s_xPixelCount+1);
+			break;
+		}
+#else
+		for (s32 i = end; i >= 0; i--, offset -= s_width)
+		{
+			const u8 c = tex[v];
+			vCoordFixed += s_vCoordStep;
+			v = floor16(vCoordFixed);
+			if (c) { s_columnOut[offset] = c; }
+		}
+#endif
+	}
+
+	void drawColumnS_Lit_Trans()
+	{
+		fixed16_16 vCoordFixed = s_vCoordFixed;
+		u8* tex = s_texImage;
+
+		s32 v = floor16(vCoordFixed);
+		s32 end = s_yPixelCount - 1;
+
+		s32 offset = end * s_width;
+#ifdef SPRTEST
+		switch (s_xPixelCount+1)
+		{
+		case 1:
+			for (s32 i = end; i >= 0; i--, offset -= s_width)
+			{
+				u8 c = tex[v];
+				vCoordFixed += s_vCoordStep;
+				v = floor16(vCoordFixed);
+				if (c) { s_columnOut[offset] = s_columnLight[c]; }
+			}
+			break;
+		case 2:
+			for (s32 i = end; i >= 0; i--, offset -= s_width)
+			{
+				u8 c = tex[v];
+				vCoordFixed += s_vCoordStep;
+				v = floor16(vCoordFixed);
+				if (c)
+				{
+					c = s_columnLight[c];
+					s_columnOut[offset] = c;
+					s_columnOut[offset+1] = c;
+				}
+			}
+			break;
+		case 3:
+			for (s32 i = end; i >= 0; i--, offset -= s_width)
+			{
+				u8 c = tex[v];
+				vCoordFixed += s_vCoordStep;
+				v = floor16(vCoordFixed);
+				if (c)
+				{
+					c = s_columnLight[c];
+					s_columnOut[offset] = c;
+					s_columnOut[offset+1] = c;
+					s_columnOut[offset+2] = c;
+				}
+			}
+			break;
+		case 4:
+			for (s32 i = end; i >= 0; i--, offset -= s_width)
+			{
+				u8 c = tex[v];
+				vCoordFixed += s_vCoordStep;
+				v = floor16(vCoordFixed);
+				if (c)
+				{
+					c = s_columnLight[c];
+					s_columnOut[offset] = c;
+					s_columnOut[offset+1] = c;
+					s_columnOut[offset+2] = c;
+					s_columnOut[offset+3] = c;
+				}
+			}
+			break;
+		case 5:
+			for (s32 i = end; i >= 0; i--, offset -= s_width)
+			{
+				u8 c = tex[v];
+				vCoordFixed += s_vCoordStep;
+				v = floor16(vCoordFixed);
+				if (c)
+				{
+					c = s_columnLight[c];
+					s_columnOut[offset] = c;
+					s_columnOut[offset+1] = c;
+					s_columnOut[offset+2] = c;
+					s_columnOut[offset+3] = c;
+					s_columnOut[offset+4] = c;
+				}
+			}
+			break;
+		case 6:
+			for (s32 i = end; i >= 0; i--, offset -= s_width)
+			{
+				u8 c = tex[v];
+				vCoordFixed += s_vCoordStep;
+				v = floor16(vCoordFixed);
+				if (c)
+				{
+					c = s_columnLight[c];
+					s_columnOut[offset] = c;
+					s_columnOut[offset+1] = c;
+					s_columnOut[offset+2] = c;
+					s_columnOut[offset+3] = c;
+					s_columnOut[offset+4] = c;
+					s_columnOut[offset+5] = c;
+				}
+			}
+			break;
+		case 7:
+			for (s32 i = end; i >= 0; i--, offset -= s_width)
+			{
+				u8 c = tex[v];
+				vCoordFixed += s_vCoordStep;
+				v = floor16(vCoordFixed);
+				if (c)
+				{
+					c = s_columnLight[c];
+					s_columnOut[offset] = c;
+					s_columnOut[offset+1] = c;
+					s_columnOut[offset+2] = c;
+					s_columnOut[offset+3] = c;
+					s_columnOut[offset+4] = c;
+					s_columnOut[offset+5] = c;
+					s_columnOut[offset+6] = c;
+				}
+			}
+			break;
+		case 8:
+			for (s32 i = end; i >= 0; i--, offset -= s_width)
+			{
+				u8 c = tex[v];
+				vCoordFixed += s_vCoordStep;
+				v = floor16(vCoordFixed);
+				if (c)
+				{
+					c = s_columnLight[c];
+					s_columnOut[offset] = c;
+					s_columnOut[offset+1] = c;
+					s_columnOut[offset+2] = c;
+					s_columnOut[offset+3] = c;
+					s_columnOut[offset+4] = c;
+					s_columnOut[offset+5] = c;
+					s_columnOut[offset+6] = c;
+					s_columnOut[offset+7] = c;
+				}
+			}
+			break;
+		default:
+			//kprintf("unhandled width %ld\n", s_xPixelCount+1);
+			break;
+		}
+#else
+		for (s32 i = end; i >= 0; i--, offset -= s_width)
+		{
+			const u8 c = tex[v];
+			vCoordFixed += s_vCoordStep;
+			v = floor16(vCoordFixed);
+			if (c) { s_columnOut[offset] = s_columnLight[c]; }
+		}
+#endif
+	}
+#endif
+
+	static inline void wall_addAdjoinSegment(s32 length, s32 x0, fixed16_16 top_dydx, fixed16_16 y1, fixed16_16 bot_dydx, fixed16_16 y0, RWallSegmentFixed* wallSegment)
 	{
 		if (s_adjoinSegCount < MAX_ADJOIN_SEG)
 		{
+#ifdef __AMIGA__
+			s32 lengthMinusOne = length - 1;
+			fixed16_16 y0End = y0;
+			if (bot_dydx != 0)
+			{
+				y0End += bot_dydx * lengthMinusOne;
+			}
+			fixed16_16 y1End = y1;
+			if (top_dydx != 0)
+			{
+				y1End += top_dydx * lengthMinusOne;
+			}
+#else
 			fixed16_16 lengthFixed = intToFixed16(length - 1);
 			fixed16_16 y0End = y0;
 			if (bot_dydx != 0)
@@ -2163,6 +2819,7 @@ namespace RClassic_Fixed
 			{
 				y1End += mul16(top_dydx, lengthFixed);
 			}
+#endif
 			edgePair_setup(length, x0, top_dydx, y1End, y1, bot_dydx, y0, y0End, s_rcfState.adjoinEdge);
 
 			s_rcfState.adjoinEdge++;
@@ -2190,8 +2847,13 @@ namespace RClassic_Fixed
 		const fixed16_16 y0 = obj->posVS.y - yOffset;
 
 		const fixed16_16 rcpZ = div16(ONE_16, z);
+#ifdef __AMIGA__
+		const fixed16_16 projX0 = mul16((x0 * s_rcfState.focalLength),    rcpZ) + s_rcfState.projOffsetX;
+		const fixed16_16 projY0 = mul16((y0 * s_rcfState.focalLenAspect), rcpZ) + s_rcfState.projOffsetY;
+#else
 		const fixed16_16 projX0 = mul16(mul16(x0, s_rcfState.focalLength),    rcpZ) + s_rcfState.projOffsetX;
 		const fixed16_16 projY0 = mul16(mul16(y0, s_rcfState.focalLenAspect), rcpZ) + s_rcfState.projOffsetY;
+#endif
 
 		s32 x0_pixel = round16(projX0);
 		s32 y0_pixel = round16(projY0);
@@ -2203,8 +2865,13 @@ namespace RClassic_Fixed
 		const fixed16_16 x1 = x0 + frame->widthWS;
 		const fixed16_16 y1 = y0 + frame->heightWS;
 
+#ifdef __AMIGA__
+		const fixed16_16 projX1 = mul16((x1 * s_rcfState.focalLength),    rcpZ) + s_rcfState.projOffsetX;
+		const fixed16_16 projY1 = mul16((y1 * s_rcfState.focalLenAspect), rcpZ) + s_rcfState.projOffsetY;
+#else
 		const fixed16_16 projX1 = mul16(mul16(x1, s_rcfState.focalLength),    rcpZ) + s_rcfState.projOffsetX;
 		const fixed16_16 projY1 = mul16(mul16(y1, s_rcfState.focalLenAspect), rcpZ) + s_rcfState.projOffsetY;
+#endif
 
 		s32 x1_pixel = round16(projX1);
 		s32 y1_pixel = round16(projY1);
@@ -2228,7 +2895,11 @@ namespace RClassic_Fixed
 		if (x0_pixel < s_windowX0)
 		{
 			const s32 dx = s_windowX0 - x0_pixel;
+#ifdef __AMIGA__
+			uCoord = uCoordStep * dx;
+#else
 			uCoord = mul16(uCoordStep, intToFixed16(dx));
+#endif
 			x0_pixel = s_windowX0;
 		}
 		if (x1_pixel > s_windowX1)
@@ -2241,6 +2912,17 @@ namespace RClassic_Fixed
 
 		// Figure out the correct column function.
 		ColumnFunction spriteColumnFunc;
+#if 0 // TODO HACK
+		if (s_columnLight && !(obj->flags & OBJ_FLAG_FULLBRIGHT) && !s_flatLighting)
+		{
+			spriteColumnFunc = s_columnFunc[COLFUNC_LIT];
+		}
+		else
+		{
+			spriteColumnFunc = s_columnFunc[COLFUNC_FULLBRIGHT];
+		}
+#else
+		//s_columnLight = NULL; // TODO HACK REMOVE
 		if (s_columnLight && !(obj->flags & OBJ_FLAG_FULLBRIGHT) && !s_flatLighting)
 		{
 			spriteColumnFunc = s_columnFunc[COLFUNC_LIT_TRANS];
@@ -2249,6 +2931,7 @@ namespace RClassic_Fixed
 		{
 			spriteColumnFunc = s_columnFunc[COLFUNC_FULLBRIGHT_TRANS];
 		}
+#endif
 
 		// Draw
 		const s32 compressed = cell->compressed;
@@ -2256,10 +2939,17 @@ namespace RClassic_Fixed
 
 		s32 n;
 		u8* image;
+#ifdef __AMIGA__
+		fixed16_16 yCoordStep = 0;
+#endif
 		if (compressed == 1)
 		{
 			n = -1;
 			image = imageData + (cell->sizeX * sizeof(u32));
+#ifdef __AMIGA__
+			yCoordStep = height / cell->sizeY;
+			//spriteColumnFunc -= 2; // non transparent variant
+#endif
 		}
 		else
 		{
@@ -2275,9 +2965,20 @@ namespace RClassic_Fixed
 		// This should be set to handle all sizes, repeating is not required.
 		s_texHeightMask = 0xffff;
 
+#ifdef SPRTEST
+		s_xPixelCount = 0;
+#endif
 		const u32* columnOffset = (u32*)(basePtr + cell->columnOffset);
 		for (s32 x = x0_pixel; x <= x1_pixel; x++, uCoord += uCoordStep)
 		{
+#ifdef SPRTEST
+			// consume the extra pixels
+			if (s_xPixelCount > 0)
+			{
+				s_xPixelCount--;
+				continue;
+			}
+#endif
 			if (z < s_rcfState.depth1d[x])
 			{
 				s32 y0 = y0_pixel;
@@ -2297,8 +2998,32 @@ namespace RClassic_Fixed
 				s_yPixelCount = y1 - y0 + 1;
 				if (s_yPixelCount > 0)
 				{
+#ifdef __AMIGA__
+#ifdef SPRTEST
+					s_xPixelCount = 0;
+					if (uCoordStep < ONE_16)
+					{
+						//kprintf("uCoordStep %08lx\n", uCoordStep);
+						/*
+						fixed16_16 uCoordNew = uCoord;
+						kprintf("(%08lx + %08lx) = %08lx, uCoord %08lx\n", uCoordNew, uCoordStep, uCoordNew + uCoordStep, uCoord);
+						while ((uCoordNew += uCoordStep) == uCoord && (x + s_xPixelCount) <= x1_pixel)
+						*/
+						fixed16_16 uCoordNew = uCoord;
+						s32 texelU = floor16(uCoord);
+						while (floor16(uCoordNew += uCoordStep) == texelU && s_xPixelCount < 8-1 && (x + s_xPixelCount) < x1_pixel)
+						{
+							s_xPixelCount++;
+						}
+					}
+#endif
+
+					const s32 vOffset = y1_pixel - y1;
+					s_vCoordFixed = vOffset * s_vCoordStep;
+#else
 					const fixed16_16 vOffset = intToFixed16(y1_pixel - y1);
 					s_vCoordFixed = mul16(vOffset, s_vCoordStep);
+#endif
 
 					s32 texelU = min(cell->sizeX-1, floor16(uCoord));
 					if (flip)
@@ -2309,11 +3034,45 @@ namespace RClassic_Fixed
 					if (compressed)
 					{
 						const u8* colPtr = (u8*)cell + columnOffset[texelU];
+#ifdef __AMIGA__
+						// find the first non-transparent texel...
+						u8 count = *colPtr;
+						if (count & 0x80)
+						{
+							count &= 0x7f;
+							// TODO sub-pixel precision
+							//fixed16_16 countFixed = intToFixed16(count) - ONE_16 + fract16(s_vCoordFixed);
+							//fixed16_16 countFixed = intToFixed16(count) - fract16(s_vCoordFixed);
+							fixed16_16 countFixed = intToFixed16(count) - HALF_16;
+							s_vCoordFixed = max(s_vCoordFixed, countFixed);
+							s32 skip = round16(count * yCoordStep) - vOffset;
+							if (skip > 0)
+								s_yPixelCount -= skip;
+						}
+#endif
 
 						// Decompress the column into "work buffer."
 						assert(cell->sizeY <= 1024 && texelU >= 0 && texelU < cell->sizeX);
 						sprite_decompressColumn(colPtr, s_workBuffer, cell->sizeY);
 						s_texImage = (u8*)s_workBuffer;
+#ifdef __AMIGA__
+						// ... and the last one
+						u8 height = s_workBuffer[cell->sizeY];
+						s32 diff = cell->sizeY - height - 1;
+						if (diff > 0)
+						{
+							s32 diffScreen = round16(diff * yCoordStep);
+							//s32 diffScreen = floor16((diff - 1) * yCoordStep);
+							s32 skipScreen = y0 - y0_pixel;
+							s32 skip = diffScreen - skipScreen;
+							//kprintf("U %3ld sizeY %3ld height %3ld\n", texelU, cell->sizeY, height);
+							if (skip > 0)
+							{
+								y0 += skip;
+								s_yPixelCount -= skip;
+							}
+						}
+#endif
 					}
 					else
 					{
@@ -2327,6 +3086,10 @@ namespace RClassic_Fixed
 				}
 			}
 		}
+#ifdef SPRTEST
+		// reset for signs
+		s_xPixelCount = 0;
+#endif
 
 		if (drawn && s_drawnObjCount < MAX_DRAWN_OBJ_STORE)
 		{

@@ -11,6 +11,10 @@
 #include "../redgePair.h"
 #include "rsectorFixed.h"
 #include "../rcommon.h"
+#ifdef __AMIGA__
+#define s_width (320)
+#define s_height (200)
+#endif
 
 namespace TFE_Jedi
 {
@@ -79,8 +83,18 @@ namespace RClassic_Fixed
 			s_screenYMidFix = s_screenYMidBase + floor16(pitchOffset);
 
 			// yMax*0.5 / halfWidth; ~pixel Aspect
+#ifdef __AMIGA__
+			/*
+			s_rcfState.yPlaneBot =  ((s_viewHeight >> 1) - pitchOffset / floor16(s_rcfState.halfWidth));
+			s_rcfState.yPlaneTop = -((s_viewHeight >> 1) + pitchOffset / floor16(s_rcfState.halfWidth));
+			*/
+			const fixed16_16 rcpHalfWidth = ONE_16 / floor16(s_rcfState.halfWidth);
+			s_rcfState.yPlaneBot =  mul16((s_viewHeight >> 1) - pitchOffset, rcpHalfWidth);
+			s_rcfState.yPlaneTop = -mul16((s_viewHeight >> 1) + pitchOffset, rcpHalfWidth);
+#else
 			s_rcfState.yPlaneBot =  div16((s_viewHeight >> 1) - pitchOffset, s_rcfState.halfWidth);
 			s_rcfState.yPlaneTop = -div16((s_viewHeight >> 1) + pitchOffset, s_rcfState.halfWidth);
+#endif
 		}
 
 		s_rcfState.cameraTrans.z = mul16(s_zOffset, s_rcfState.cosYaw) + mul16(s_xOffset, s_rcfState.negSinYaw);
@@ -143,8 +157,13 @@ namespace RClassic_Fixed
 		s_rcfState.oneOverHalfWidth = div16(ONE_16, halfWidthFixed);
 
 		// TFE
+#ifdef __AMIGA__
+		s_rcfState.focalLength = floor16(s_rcfState.halfWidth);
+		s_rcfState.focalLenAspect = floor16(s_rcfState.halfWidth);
+#else
 		s_rcfState.focalLength = s_rcfState.halfWidth;
 		s_rcfState.focalLenAspect = s_rcfState.halfWidth;
+#endif
 	}
 
 	void setWidthFraction(fixed16_16 widthFract)
@@ -294,10 +313,12 @@ namespace RClassic_Fixed
 
 	void changeResolution(s32 width, s32 height)
 	{
+#ifndef __AMIGA__
 		assert(width == 320 && height == 200);
 		s_width  = width;
 		s_height = height;
 		s_flatCount = 0;
+#endif
 
 		buildProjectionTables(width >> 1, height >> 1, s_width, s_height - 2);
 
@@ -323,8 +344,10 @@ namespace RClassic_Fixed
 
 	void setupInitCameraAndLights()
 	{
+#ifndef __AMIGA__
 		s_width  = 320;
 		s_height = 200;
+#endif
 
 		buildProjectionTables(160, 100, 320, 198);
 		TFE_Jedi::setSkyParallax(FIXED(1024), FIXED(1024));

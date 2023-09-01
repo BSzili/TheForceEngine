@@ -55,7 +55,11 @@ namespace TFE_MidiPlayer
 	static f32 s_masterVolumeScaled = s_masterVolume * c_musicVolumeScale;
 	static Thread* s_thread = nullptr;
 
+#ifdef __AMIGA__
+	static bool s_runMusicThread;
+#else
 	static atomic_bool s_runMusicThread;
+#endif
 	static u8 s_channelSrcVolume[MIDI_CHANNEL_COUNT] = { 0 };
 	static Mutex s_mutex;
 
@@ -110,7 +114,16 @@ namespace TFE_MidiPlayer
 			}
 		}
 
+#ifdef __AMIGA__
+		s_runMusicThread = true;
+		if (!res)
+		{
+			// TODO this is a bit of a hack to let the MIDI thread sleep
+			allocateMidiDevice(MIDI_TYPE_COUNT);
+		}
+#else
 		s_runMusicThread.store(true);
+#endif
 		MUTEX_INITIALIZE(&s_mutex);
 
 		s_thread = Thread::create("MidiThread", midiUpdateFunc, nullptr);
@@ -133,7 +146,11 @@ namespace TFE_MidiPlayer
 	{
 		TFE_System::logWrite(LOG_MSG, "MidiPlayer", "Shutdown");
 		// Destroy the thread before shutting down the Midi Device.
+#ifdef __AMIGA__
+		s_runMusicThread = false;
+#else
 		s_runMusicThread.store(false);
+#endif
 		if (s_thread->isPaused())
 		{
 			s_thread->resume();
@@ -142,6 +159,10 @@ namespace TFE_MidiPlayer
 
 		delete s_thread;
 		delete s_midiDevice;
+#ifdef __AMIGA__
+		s_thread = nullptr;
+		s_midiDevice = nullptr;
+#endif
 
 		MUTEX_DESTROY(&s_mutex);
 	}
@@ -269,6 +290,9 @@ namespace TFE_MidiPlayer
 		// rendering is not required.
 		if (s_midiDevice && s_midiDevice->canRender())
 		{
+#ifdef __AMIGA__
+			s_midiDevice->render(buffer, stereoSampleCount);
+#else
 			// Stereo samples -> actual samples.
 			const s32 linearSampleCount = (s32)stereoSampleCount * 2;
 			// Make sure the sample buffer is large enough, this should only happen once.
@@ -294,6 +318,7 @@ namespace TFE_MidiPlayer
 				}
 			}
 			MUTEX_UNLOCK(&s_mutex);
+#endif
 		}
 	}
 
@@ -480,10 +505,22 @@ namespace TFE_MidiPlayer
 			s_midiCmdCount = 0;
 
 			// Process the midi callback, if it exists.
+#ifdef __AMIGA__
+			if (!s_midiDevice) isPaused = true;
+#endif
 			if (s_midiCallback.callback && !isPaused)
 			{
 				s_midiCallback.accumulator += TFE_System::updateThreadLocal(&localTimeCallback);
+#ifdef __AMIGA__
+				f64 delay = s_midiCallback.timeStep - s_midiCallback.accumulator;
+				if (delay > 0.0)
+				{
+					TFE_System::sleep(s_midiCallback.timeStep * 1000.0f);
+				}
+				if (s_midiCallback.callback)
+#else
 				while (s_midiCallback.callback && s_midiCallback.accumulator >= s_midiCallback.timeStep)
+#endif
 				{
 					s_midiCallback.callback();
 					s_midiCallback.accumulator -= s_midiCallback.timeStep;
@@ -493,9 +530,20 @@ namespace TFE_MidiPlayer
 				// Check for hanging notes.
 				detectHangingNotes();
 			}
+#ifdef __AMIGA__
+			else
+			{
+				//TFE_System::logWrite(LOG_MSG, __FILE__, "sleep\n", __FUNCTION__, __LINE__);
+				TFE_System::sleep(1000);
+			}
+#endif
 
 			MUTEX_UNLOCK(&s_mutex);
+#ifdef __AMIGA__
+			runThread = s_runMusicThread;
+#else
 			runThread = s_runMusicThread.load();
+#endif
 		};
 		
 		return (TFE_THREADRET)0;

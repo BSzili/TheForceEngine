@@ -23,8 +23,13 @@ namespace TFE_Jedi
 		fixed16_16 oneOverHalfWidth;
 
 		// Projection
+#ifdef __AMIGA__
+		s32         focalLength;
+		s32         focalLenAspect;
+#else
 		fixed16_16  focalLength;
 		fixed16_16  focalLenAspect;
+#endif
 		fixed16_16  eyeHeight;
 		fixed16_16* depth1d_all;
 		fixed16_16* depth1d;

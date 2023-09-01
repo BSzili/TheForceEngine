@@ -39,6 +39,9 @@ namespace TFE_Input
 
 	// Buffered Input
 	void setBufferedInput(const char* text);
+#ifdef __AMIGA__
+	void setBufferedChar(char ch);
+#endif
 	void setBufferedKey(KeyboardCode key);
 
 	// Get

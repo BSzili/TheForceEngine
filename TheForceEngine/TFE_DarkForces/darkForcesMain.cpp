@@ -376,8 +376,12 @@ namespace TFE_DarkForces
 		TFE_Audio::resume();
 
 		// Reset state.
+#ifdef __AMIGA__
+#warning TODO
+#else
 		s_sharedState = {};
 		s_runGameState = {};
+#endif
 	}
 
 	void DarkForces::pauseGame(bool pause)
@@ -1078,6 +1082,7 @@ namespace TFE_DarkForces
 		TFE_Paths::addLocalSearchPath("LFD/");
 		// Dark Forces also adds C:/ and C:/LFD but TFE won't be doing that for obvious reasons...
 		
+#ifndef __AMIGA__
 		// Add some extra directories, if they exist.
 		// Obviously these were not in the original code.
 		TFE_Paths::addLocalSearchPath("Mods/");
@@ -1097,6 +1102,7 @@ namespace TFE_DarkForces
 		// Add the adjustable HUD.
 		sprintf(path, "%sMods/TFE/AdjustableHud", programDir);
 		TFE_Paths::addAbsoluteSearchPath(path);
+#endif
 	}
 
 	void openGobFiles()

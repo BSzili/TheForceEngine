@@ -55,21 +55,37 @@ namespace TFE_DarkForces
 		PLAYER_INF_STEP                = COL_INFINITY,
 		PLAYER_HEADWAVE_VERT_SPD       = 0xc000,	  // 0.75   units/sec.
 		PLAYER_HEADWAVE_VERT_WATER_SPD = 0x3000,	  // 0.1875 units/sec.
+#ifdef __AMIGA__
+		PLAYER_DMG_FLOOR_LOW           = (5),	  // Low  damage floors apply  5 dmg/sec.
+		PLAYER_DMG_FLOOR_HIGH          = (10),	  // High damage floors apply 10 dmg/sec.
+		PLAYER_DMG_WALL				   = (20),	  // Damage walls apply 20 dmg/sec.
+		PLAYER_DMG_CRUSHING            = (10),   // The player suffers 10 dmg/sec. from crushing damage.
+#else
 		PLAYER_DMG_FLOOR_LOW           = FIXED(5),	  // Low  damage floors apply  5 dmg/sec.
 		PLAYER_DMG_FLOOR_HIGH          = FIXED(10),	  // High damage floors apply 10 dmg/sec.
 		PLAYER_DMG_WALL				   = FIXED(20),	  // Damage walls apply 20 dmg/sec.
 		PLAYER_DMG_CRUSHING            = FIXED(10),   // The player suffers 10 dmg/sec. from crushing damage.
+#endif
 		PLAYER_FALL_SCREAM_VEL         = FIXED(60),	  // Fall speed when the player starts screaming.
 		PLAYER_FALL_SCREAM_MINHEIGHT   = FIXED(55),   // The player needs to be at least 55 units from the ground before screaming.
 		PLAYER_FALL_HIT_SND_HEIGHT     = FIXED(4),	  // 4.0 units, fall height for player to make a sound when hitting the ground.
 		PLAYER_LAND_VEL_CHANGE		   = FIXED(60),	  // Point wear landing velocity to head change velocity changes slope.
 		PLAYER_LAND_VEL_MAX            = FIXED(1000), // Maximum head change landing velocity.
 
+#ifdef __AMIGA__
+		PLAYER_FORWARD_SPEED           = (256),  // Forward speed in units/sec.
+		PLAYER_STRAFE_SPEED            = (192),  // Strafe speed in units/sec.
+#else
 		PLAYER_FORWARD_SPEED           = FIXED(256),  // Forward speed in units/sec.
 		PLAYER_STRAFE_SPEED            = FIXED(192),  // Strafe speed in units/sec.
+#endif
 		PLAYER_CROUCH_SPEED            = 747108,      // 11.4 units/sec
 		PLAYER_MOUSE_TURN_SPD          = 8,           // Mouse position delta to turn speed multiplier.
+#ifdef __AMIGA__
+		PLAYER_KB_TURN_SPD             = 4915,        // Keyboard turn speed in angles/sec. (0.075)
+#else
 		PLAYER_KB_TURN_SPD             = 3413,        // Keyboard turn speed in angles/sec.
+#endif
 		PLAYER_CONTROLLER_TURN_SPD     = 3413*3,	  // Controller turn speed in angles/sec.
 		PLAYER_CONTROLLER_PITCH_SPD    = 3413*2,	  // Controller turn speed in angles/sec.
 		PLAYER_JUMP_IMPULSE            = -2850816,    // Jump vertical impuse: -43.5 units/sec.
@@ -1266,7 +1282,9 @@ namespace TFE_DarkForces
 		{
 			f32 pitchDelta = f32(mdy * PLAYER_MOUSE_TURN_SPD) * inputMapping_getVertMouseSensitivity();
 			// Counteract the tan() call later in the delta in order to make the movement perceptually linear.
+#ifndef __AMIGA__
 			pitchDelta = atanf(pitchDelta/2047.0f * PI) / PI * 2047.0f;
+#endif
 			s_playerPitch = clamp(s_playerPitch - s32(pitchDelta), -PITCH_LIMIT, PITCH_LIMIT);
 		}
 
@@ -1275,17 +1293,30 @@ namespace TFE_DarkForces
 		{
 			if (inputMapping_getActionState(IADF_FORWARD))
 			{
+#ifdef __AMIGA__
+				fixed16_16 speed = PLAYER_FORWARD_SPEED * s_deltaTime;
+#else
 				fixed16_16 speed = mul16(PLAYER_FORWARD_SPEED, s_deltaTime);
+#endif
 				s_forwardSpd = max(speed, s_forwardSpd);
 			}
 			else if (inputMapping_getActionState(IADF_BACKWARD))
 			{
+#ifdef __AMIGA__
+				fixed16_16 speed = -(PLAYER_FORWARD_SPEED * s_deltaTime);
+#else
 				fixed16_16 speed = -mul16(PLAYER_FORWARD_SPEED, s_deltaTime);
+#endif
 				s_forwardSpd = min(speed, s_forwardSpd);
 			}
 			else if (inputMapping_getAnalogAxis(AA_MOVE))
 			{
+#ifdef __AMIGA__
+				// TODO calculate in floating point
+				fixed16_16 speed = mul16((PLAYER_FORWARD_SPEED * s_deltaTime), floatToFixed16(clamp(inputMapping_getAnalogAxis(AA_MOVE), -1.0f, 1.0f)));
+#else
 				fixed16_16 speed = mul16(mul16(PLAYER_FORWARD_SPEED, s_deltaTime), floatToFixed16(clamp(inputMapping_getAnalogAxis(AA_MOVE), -1.0f, 1.0f)));
+#endif
 				if (speed < 0)
 				{
 					s_forwardSpd = min(speed, s_forwardSpd);
@@ -1404,6 +1435,7 @@ namespace TFE_DarkForces
 			}
 			else if (inputMapping_getAnalogAxis(AA_LOOK_HORZ))
 			{
+				// TODO calculate in floating point
 				fixed16_16 turnSpeed = mul16(mul16(PLAYER_CONTROLLER_TURN_SPD, s_deltaTime), floatToFixed16(inputMapping_getAnalogAxis(AA_LOOK_HORZ)));
 				s_playerYaw += turnSpeed;
 				s_playerYaw &= ANGLE_MASK;
@@ -1427,9 +1459,12 @@ namespace TFE_DarkForces
 			}
 			else if (inputMapping_getAnalogAxis(AA_LOOK_VERT))
 			{
+				// TODO calculate in floating point
 				fixed16_16 turnSpeed = mul16(mul16(PLAYER_CONTROLLER_PITCH_SPD, s_deltaTime), floatToFixed16(inputMapping_getAnalogAxis(AA_LOOK_VERT)));
 				// Counteract the tan() call later in the delta in order to make the movement perceptually linear.
+#ifndef __AMIGA__
 				turnSpeed = (fixed16_16)floatToFixed16(atanf((f32)fixed16ToFloat(turnSpeed) / 2047.0f * PI) / PI * 2047.0f);
+#endif
 
 				s_playerPitch = clamp(s_playerPitch + turnSpeed, -PITCH_LIMIT, PITCH_LIMIT);
 			}
@@ -1442,17 +1477,30 @@ namespace TFE_DarkForces
 
 			if (inputMapping_getActionState(IADF_STRAFE_RT))
 			{
+#ifdef __AMIGA__
+				fixed16_16 speed = PLAYER_STRAFE_SPEED * s_deltaTime;
+#else
 				fixed16_16 speed = mul16(PLAYER_STRAFE_SPEED, s_deltaTime);
+#endif
 				s_strafeSpd = max(speed, s_strafeSpd);
 			}
 			else if (inputMapping_getActionState(IADF_STRAFE_LT))
 			{
+#ifdef __AMIGA__
+				fixed16_16 speed = -(PLAYER_STRAFE_SPEED * s_deltaTime);
+#else
 				fixed16_16 speed = -mul16(PLAYER_STRAFE_SPEED, s_deltaTime);
+#endif
 				s_strafeSpd = min(speed, s_strafeSpd);
 			}
 			else if (inputMapping_getAnalogAxis(AA_STRAFE))
 			{
+#ifdef __AMIGA__
+				// TODO calculate in floating point
+				fixed16_16 speed = mul16((PLAYER_STRAFE_SPEED * s_deltaTime), floatToFixed16(clamp(inputMapping_getAnalogAxis(AA_STRAFE), -1.0f, 1.0f)));
+#else
 				fixed16_16 speed = mul16(mul16(PLAYER_STRAFE_SPEED, s_deltaTime), floatToFixed16(clamp(inputMapping_getAnalogAxis(AA_STRAFE), -1.0f, 1.0f)));
+#endif
 				if (speed < 0)
 				{
 					s_strafeSpd = min(speed, s_strafeSpd);
@@ -2004,7 +2052,11 @@ namespace TFE_DarkForces
 				s_crushSoundId = sound_play(s_crushSoundSource);
 			}
 			// Crushing damage is 10 damage/second
+#ifdef __AMIGA__
+			fixed16_16 crushingDmg = PLAYER_DMG_CRUSHING * s_deltaTime;
+#else
 			fixed16_16 crushingDmg = mul16(PLAYER_DMG_CRUSHING, s_deltaTime);
+#endif
 			player_applyDamage(0, crushingDmg, JFALSE);
 			player->worldHeight = minDistToFloor;
 			playerHandleCollisionFunc(player->sector, collision_handleCrushing, nullptr);
@@ -2088,17 +2140,29 @@ namespace TFE_DarkForces
 		// Handle damage floors.
 		if (dmgFlags == SEC_FLAGS1_LOW_DAMAGE && s_onFloor)
 		{
+#ifdef __AMIGA__
+			fixed16_16 dmg = PLAYER_DMG_FLOOR_LOW * s_deltaTime;
+#else
 			fixed16_16 dmg = mul16(PLAYER_DMG_FLOOR_LOW, s_deltaTime);
+#endif
 			player_applyDamage(dmg, 0, JTRUE);
 		}
 		else if (dmgFlags == SEC_FLAGS1_HIGH_DAMAGE && s_onFloor)
 		{
+#ifdef __AMIGA__
+			fixed16_16 dmg = PLAYER_DMG_FLOOR_HIGH * s_deltaTime;
+#else
 			fixed16_16 dmg = mul16(PLAYER_DMG_FLOOR_HIGH, s_deltaTime);
+#endif
 			player_applyDamage(dmg, 0, JTRUE);
 		}
 		else if (dmgFlags == lowAndHighFlag && !s_wearingGasmask && !s_playerDying)
 		{
+#ifdef __AMIGA__
+			fixed16_16 dmg = PLAYER_DMG_FLOOR_LOW * s_deltaTime;
+#else
 			fixed16_16 dmg = mul16(PLAYER_DMG_FLOOR_LOW, s_deltaTime);
+#endif
 			player_applyDamage(dmg, 0, JFALSE);
 
 			if (!s_gasSectorTask)
@@ -2116,7 +2180,11 @@ namespace TFE_DarkForces
 		// Handle damage walls.
 		if (s_playerSlideWall && (s_playerSlideWall->flags1 & WF1_DAMAGE_WALL))
 		{
+#ifdef __AMIGA__
+			fixed16_16 dmg = PLAYER_DMG_WALL * s_deltaTime;
+#else
 			fixed16_16 dmg = mul16(PLAYER_DMG_WALL, s_deltaTime);
+#endif
 			player_applyDamage(dmg, 0, JTRUE);
 		}
 

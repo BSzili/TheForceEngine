@@ -635,7 +635,9 @@ namespace TFE_DarkForces
 			*outColor = _CONV_6bitTo8bit(srcColor->r) | (_CONV_6bitTo8bit(srcColor->g) << 8u) | (_CONV_6bitTo8bit(srcColor->b) << 16u) | (0xffu << 24u);
 		}
 		vfb_setPalette(palette);
+#ifndef __AMIGA__
 		vfb_setPalette(palette);
+#endif
 	}
 
 	void lpalette_setName(LPalette* pal, u32 resType, const char* name)

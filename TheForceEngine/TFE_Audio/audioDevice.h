@@ -17,6 +17,16 @@
 typedef CRITICAL_SECTION Mutex;
 #undef min
 #undef max
+#elif defined(__AMIGA__)
+
+#define MUTEX_INITIALIZE(A)
+#define MUTEX_DESTROY(A)
+#define MUTEX_LOCK(A)
+#define MUTEX_TRYLOCK(A)
+#define MUTEX_UNLOCK(A)
+
+typedef void* Mutex;
+
 #else
 #include <cstddef>
 

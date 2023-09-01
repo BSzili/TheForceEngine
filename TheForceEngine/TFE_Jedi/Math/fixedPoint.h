@@ -36,6 +36,46 @@ namespace TFE_Jedi
 	
 	// multiplies 2 fixed point numbers, the result is fixed point.
 	// 16.16 * 16.16 overflows 32 bit, so the calculation is done in 64 bit and then shifted back to 32 bit.
+#if defined(__AMIGA__) && defined(__mc68060__)
+#ifdef CLIB_DEBUG_PROTOS_H
+	inline fixed16_16 mul16_fix(fixed16_16 x, fixed16_16 y)
+	{
+		return fixed16_16((s64(x) * s64(y)) >> FRAC_BITS_16);
+	}
+	inline fixed16_16 mul16_flt(fixed16_16 x, fixed16_16 y)
+	{
+		return fixed16_16((f64(x) * f64(y)) * (1.0 / 65536.0));
+	}
+	inline fixed16_16 mul16_dbg(fixed16_16 x, fixed16_16 y, const char *func, int line)
+	{
+		fixed16_16 fix = mul16_fix(x,y);
+		fixed16_16 flt = mul16_flt(x,y);
+		if (fix != flt)
+			kprintf("%s:%ld %08x %08x\n", func, line, fix, flt);
+		return flt;
+	}
+	//#define mul16(x,y) mul16_dbg((x),(y),__FUNCTION__,__LINE__)
+	#define mul16(x,y) mul16_flt((x),(y))
+#else
+	inline fixed16_16 mul16_fix(fixed16_16 x, fixed16_16 y)
+	{
+		return fixed16_16((s64(x) * s64(y)) >> FRAC_BITS_16);
+	}
+
+	inline fixed16_16 mul16(fixed16_16 x, fixed16_16 y)
+	{
+		/*
+		const int precision = 0;
+		const f64 x64 = f64(x >> precision);
+		const f64 y64 = f64(y >> precision);
+
+		//return fixed16_16((x64 * y64) * (f64(1 << (precision * 2)) / 65536.0));
+		return fixed16_16((x64 * y64) * (1.0 / 65536.0)) << (precision * 2);
+		*/
+		return fixed16_16((f64(x) * f64(y)) * (1.0 / 65536.0));
+	}
+#endif
+#else
 	inline fixed16_16 mul16(fixed16_16 x, fixed16_16 y)
 	{
 		const s64 x64 = s64(x);
@@ -48,9 +88,19 @@ namespace TFE_Jedi
 
 		return fixed16_16((x64 * y64) >> FRAC_BITS_16);
 	}
+#endif
 
 	// divides 2 fixed point numbers, the result is fixed point.
 	// 16.16 * FIXED_ONE overflows 32 bit, so the calculation is done in 64 bit but the result can be safely cast back to 32 bit.
+#if defined(__AMIGA__) && defined(__mc68060__)
+	inline fixed16_16 div16(fixed16_16 num, fixed16_16 denom)
+	{
+		const f64 num64 = f64(num);
+		const f64 den64 = f64(denom);
+
+		return fixed16_16((num64 / den64) * 65536.0);
+	}
+#else
 	inline fixed16_16 div16(fixed16_16 num, fixed16_16 denom)
 	{
 		const s64 num64 = s64(num);
@@ -63,6 +113,7 @@ namespace TFE_Jedi
 
 		return fixed16_16((num64 << FRAC_BITS_16) / den64);
 	}
+#endif
 
 	// truncates a 16.16 fixed point number, returns an int: x >> 16
 	inline s32 floor16(fixed16_16 x)
@@ -137,6 +188,51 @@ namespace TFE_Jedi
 		return s32(x >> 4);
 	}
 
+#ifdef __AMIGA__
+/*
+MIT License
+
+Copyright (c) 2019 Christophe Meessen
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+	inline fixed16_16 fixedSqrt(fixed16_16 x)
+	{
+		u32 t, q, b, r;
+		r = x;
+		b = 0x40000000;
+		q = 0;
+		while (b > 0x40)
+		{
+			t = q + b;
+			if (r >= t)
+			{
+				r -= t;
+				q = t + b; // equivalent to q += 2*b
+			}
+			r <<= 1;
+			b >>= 1;
+		}
+		q >>= 8;
+		return q;
+	}
+#else
 	// I cheat here with the fixedSqrt and just do a regular square root...
 	// TODO: Replace with 15-bit table-based sqrt? -- Also probably not necessary.
 	inline fixed16_16 fixedSqrt(fixed16_16 x)
@@ -144,4 +240,5 @@ namespace TFE_Jedi
 		const f32 fx = fixed16ToFloat(x);
 		return floatToFixed16(sqrtf(fx));
 	}
+#endif
 }

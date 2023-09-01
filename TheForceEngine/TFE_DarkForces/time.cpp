@@ -53,7 +53,11 @@ namespace TFE_DarkForces
 		Tick prevTick = s_curTick;
 		s_curTick = Tick(s_timeAccum);
 
+#ifdef __AMIGA__
+		fixed16_16 dt = intToFixed16(s_curTick - prevTick) / TICKS_PER_SECOND;
+#else
 		fixed16_16 dt = div16(intToFixed16(s_curTick - prevTick), FIXED(TICKS_PER_SECOND));
+#endif
 		for (s32 i = 0; i < 13; i++)
 		{
 			s_frameTicks[i] += mul16(dt, intToFixed16(i));

@@ -8,6 +8,7 @@ enum GameID
 	Game_Count
 };
 
+#ifndef __AMIGA__
 namespace TFE_Settings
 {
 	static const char* c_gameName[] =
@@ -82,3 +83,4 @@ namespace TFE_Settings
 		c_outlawsLocations
 	};
 }
+#endif

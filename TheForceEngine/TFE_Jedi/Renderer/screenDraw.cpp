@@ -18,19 +18,27 @@ namespace TFE_Jedi
 	};
 
 	static u8 s_transColor = 0;
+#ifdef __AMIGA__
+	#define s_gpuEnabled (false)
+#else
 	static bool s_gpuEnabled = false;
+#endif
 
 	void blitTextureToScreenScaledText(ScreenImage* texture, DrawRect* rect, s32 x0, s32 y0, fixed16_16 xScale, fixed16_16 yScale, u8* output);
 
 	void screen_clear()
 	{
 		s_transColor = 0;
+#ifndef __AMIGA__
 		s_gpuEnabled = false;
+#endif
 	}
 
 	void screen_enableGPU(bool enable)
 	{
+#ifndef __AMIGA__
 		s_gpuEnabled = enable;
+#endif
 	}
 
 	void screenDraw_beginLines(u32 width, u32 height)
@@ -255,6 +263,13 @@ namespace TFE_Jedi
 	// Original drawing code assumes 320x200
 	/////////////////////////////////////////////////////////
 
+#ifdef __AMIGA__
+#define vfb_getStride() (320)
+#endif
+
+#ifdef __AMIGA__
+	static inline
+#endif
 	void textureBlitColumnOpaque(u8* image, u8* outBuffer, s32 yPixelCount)
 	{
 		s32 end = yPixelCount - 1;
@@ -266,6 +281,9 @@ namespace TFE_Jedi
 		}
 	}
 
+#ifdef __AMIGA__
+	static inline
+#endif
 	void textureBlitColumnTrans(u8* image, u8* outBuffer, s32 yPixelCount)
 	{
 		s32 end = yPixelCount - 1;
@@ -277,6 +295,9 @@ namespace TFE_Jedi
 		}
 	}
 
+#ifdef __AMIGA__
+	static inline
+#endif
 	void textureBlitColumnOpaqueRow(u8* image, u8* outBuffer, s32 imageStride, s32 yPixelCount)
 	{
 		s32 end = yPixelCount - 1;
@@ -289,6 +310,9 @@ namespace TFE_Jedi
 		}
 	}
 
+#ifdef __AMIGA__
+	static inline
+#endif
 	void textureBlitColumnTransRow(u8* image, u8* outBuffer, s32 imageStride, s32 yPixelCount)
 	{
 		s32 end = yPixelCount - 1;
@@ -303,6 +327,9 @@ namespace TFE_Jedi
 
 	//////////////////////////////////
 	// Image blit functions
+#ifdef __AMIGA__
+	static inline
+#endif
 	void imageBlitColumnOpaque(u8* image, u8* outBuffer, s32 yPixelCount)
 	{
 		s32 end = yPixelCount - 1;
@@ -314,6 +341,9 @@ namespace TFE_Jedi
 		}
 	}
 
+#ifdef __AMIGA__
+	static inline
+#endif
 	void imageBlitColumnTrans(u8* image, u8* outBuffer, s32 yPixelCount)
 	{
 		s32 end = yPixelCount - 1;
@@ -326,6 +356,9 @@ namespace TFE_Jedi
 		}
 	}
 
+#ifdef __AMIGA__
+	static inline
+#endif
 	void imageBlitColumnOpaqueRow(u8* image, u8* outBuffer, s32 imageStride, s32 yPixelCount)
 	{
 		s32 end = yPixelCount - 1;
@@ -338,6 +371,9 @@ namespace TFE_Jedi
 		}
 	}
 
+#ifdef __AMIGA__
+	static inline
+#endif
 	void imageBlitColumnTransRow(u8* image, u8* outBuffer, s32 imageStride, s32 yPixelCount)
 	{
 		s32 end = yPixelCount - 1;
@@ -353,6 +389,9 @@ namespace TFE_Jedi
 
 	/////////////////////////////////
 
+#ifdef __AMIGA__
+	static inline
+#endif
 	void textureBlitColumnOpaqueLit(u8* image, u8* outBuffer, s32 yPixelCount, const u8* atten)
 	{
 		s32 end = yPixelCount - 1;
@@ -364,6 +403,9 @@ namespace TFE_Jedi
 		}
 	}
 
+#ifdef __AMIGA__
+	static inline
+#endif
 	void textureBlitColumnTransLit(u8* image, u8* outBuffer, s32 yPixelCount, const u8* atten)
 	{
 		s32 end = yPixelCount - 1;
@@ -485,6 +527,10 @@ namespace TFE_Jedi
 			}
 		}
 	}
+
+#ifdef __AMIGA__
+#undef vfb_getStride
+#endif
 
 	/////////////////////////////////////////////////////////
 	// The "scaled" variants allow for scaling.
@@ -675,6 +721,10 @@ namespace TFE_Jedi
 		}
 	}
 
+#ifdef __AMIGA__
+#define vfb_getStride() (320)
+#endif
+
 	void blitTextureToScreen(ScreenImage* texture, DrawRect* rect, s32 x0, s32 y0, u8* output)
 	{
 		if (s_gpuEnabled) { return; }
@@ -747,6 +797,10 @@ namespace TFE_Jedi
 			}
 		}
 	}
+
+#ifdef __AMIGA__
+#undef vfb_getStride
+#endif
 
 	void blitTextureToScreenScaled(ScreenImage* texture, DrawRect* rect, s32 x0, s32 y0, fixed16_16 xScale, fixed16_16 yScale, u8* output)
 	{

@@ -17,10 +17,17 @@ typedef intptr_t iptr;
 typedef float f32;
 typedef double f64;
 
+#ifdef __AMIGA__
+typedef uint32_t atomic_u32;
+typedef int32_t  atomic_s32;
+typedef float    atomic_f32;
+typedef bool     atomic_bool;
+#else
 typedef std::atomic<uint32_t> atomic_u32;
 typedef std::atomic<int32_t>  atomic_s32;
 typedef std::atomic<float>    atomic_f32;
 typedef std::atomic<bool>     atomic_bool;
+#endif
 
 struct Vec2f
 {

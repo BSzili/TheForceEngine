@@ -338,6 +338,7 @@ namespace TFE_Jedi
 	}
 
 	// Size_t
+#ifndef __AMIGA__
 	inline size_t min(size_t a, size_t b)
 	{
 		return a < b ? a : b;
@@ -347,6 +348,7 @@ namespace TFE_Jedi
 	{
 		return a > b ? a : b;
 	}
+#endif
 
 	inline size_t clamp(size_t x, size_t a, size_t b)
 	{

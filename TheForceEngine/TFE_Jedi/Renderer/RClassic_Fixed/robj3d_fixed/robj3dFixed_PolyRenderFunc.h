@@ -40,12 +40,21 @@ s32 robj3d_findNextEdge(s32 xMinIndex, s32 xMin)
 		{
 			s_edgeTopLength = dx;
 
+#ifdef __AMIGA__
+			const fixed16_16 step = ONE_16 / dx;
+#else
 			const fixed16_16 step = div16(ONE_16, intToFixed16(dx));
+#endif
 			s_edgeTopY0_Pixel = cur->y;
 			s_edgeTop_Y0 = intToFixed16(cur->y);
 
+#ifdef __AMIGA__
+			const s32 dy = next->y - cur->y;
+			s_edgeTop_dYdX = dy * step;
+#else
 			const fixed16_16 dy = intToFixed16(next->y - cur->y);
 			s_edgeTop_dYdX = mul16(dy, step);
+#endif
 
 			const fixed16_16 dz = next->z - cur->z;
 			s_edgeTop_dZdX = mul16(dz, step);
@@ -116,15 +125,28 @@ s32 robj3d_findPrevEdge(s32 minXIndex)
 		{
 			s_edgeBotLength = dx;
 
+#ifdef __AMIGA__
+			const fixed16_16 step = ONE_16 / dx;
+#else
 			const fixed16_16 step = div16(ONE_16, intToFixed16(dx));
+#endif
 			s_edgeBotY0_Pixel = cur->y;
 			s_edgeBot_Y0 = intToFixed16(cur->y);
 
 			const s32 dy = prev->y - cur->y;
+#ifdef __AMIGA__
+			s_edgeBot_dYdX = dy * step;
+#else
 			s_edgeBot_dYdX = mul16(intToFixed16(dy), step);
+#endif
 
 			const fixed16_16 dz = prev->z - cur->z;
+#ifdef __AMIGA__
+			//s_edgeBot_dZdX = dz / dx;
+			s_edgeBot_dZdX = mul16(dz, step);
+#else
 			s_edgeBot_dZdX = div16(dz, intToFixed16(dx));
+#endif
 			s_edgeBot_Z0 = cur->z;
 						
 			#if defined(POLY_INTENSITY)
@@ -211,7 +233,6 @@ void robj3d_drawColumnFlatTexture()
 
 	fixed16_16 U = s_col_Uv0.x;
 	fixed16_16 V = s_col_Uv0.z;
-	
 	s32 end = s_columnHeight - 1;
 	s32 offset = end * s_width;
 	for (s32 i = end; i >= 0; i--, offset -= s_width)
@@ -362,7 +383,11 @@ void robj3d_drawFlatColorPolygon(vec3_fixed* projVertices, s32 vertexCount, u8 c
 			if (y0_Bot > winBot)
 			{
 				#if defined(POLY_INTENSITY) || defined(POLY_UV)
+#ifdef __AMIGA__
+					yOffset = y0_Bot - winBot;
+#else
 					yOffset = intToFixed16(y0_Bot - winBot);
+#endif
 				#endif
 				y0_Bot = winBot;
 			}
@@ -370,27 +395,54 @@ void robj3d_drawFlatColorPolygon(vec3_fixed* projVertices, s32 vertexCount, u8 c
 			s_columnHeight = y0_Bot - y0_Top + 1;
 			if (s_columnHeight > 0)
 			{
+#ifdef __AMIGA__
+				const s32 height = s_edgeBotY0_Pixel - s_edgeTopY0_Pixel + 1;
+#else
 				const fixed16_16 height = intToFixed16(s_edgeBotY0_Pixel - s_edgeTopY0_Pixel + 1);
+#endif
 				s_pcolumnOut = &s_display[y0_Top*s_width + s_columnX];
 
 				#if defined(POLY_INTENSITY)
+#ifdef __AMIGA__
+					s_col_dIdY = (s_edgeTop_I0 - s_edgeBot_I0) / height;
+#else
 					s_col_dIdY = div16(s_edgeTop_I0 - s_edgeBot_I0, height);
+#endif
 					s_col_I0 = s_edgeBot_I0;
 					if (yOffset)
 					{
+#ifdef __AMIGA__
+						s_col_I0 += yOffset * s_col_dIdY;
+#else
 						s_col_I0 += mul16(yOffset, s_col_dIdY);
+#endif
 					}
 					s_dither = ((s_columnX & 1) ^ (y0_Bot & 1)) - 1;
 				#endif
 
 				#if defined(POLY_UV)
+#ifdef __AMIGA__
+					/*
+					s_col_dUVdY.x = (s_edgeTop_Uv0.x - s_edgeBot_Uv0.x) / height;
+					s_col_dUVdY.z = (s_edgeTop_Uv0.z - s_edgeBot_Uv0.z) / height;
+					*/
+					const fixed16_16 rcpHeight = ONE_16 / height;
+					s_col_dUVdY.x = mul16(s_edgeTop_Uv0.x - s_edgeBot_Uv0.x, rcpHeight);
+					s_col_dUVdY.z = mul16(s_edgeTop_Uv0.z - s_edgeBot_Uv0.z, rcpHeight);
+#else
 					s_col_dUVdY.x = div16(s_edgeTop_Uv0.x - s_edgeBot_Uv0.x, height);
 					s_col_dUVdY.z = div16(s_edgeTop_Uv0.z - s_edgeBot_Uv0.z, height);
+#endif
 					s_col_Uv0 = s_edgeBot_Uv0;
 					if (yOffset)
 					{
+#ifdef __AMIGA__
+						s_col_Uv0.x += yOffset * s_col_dUVdY.x;
+						s_col_Uv0.z += yOffset * s_col_dUVdY.z;
+#else
 						s_col_Uv0.x += mul16(yOffset, s_col_dUVdY.x);
 						s_col_Uv0.z += mul16(yOffset, s_col_dUVdY.z);
+#endif
 					}
 				#endif
 

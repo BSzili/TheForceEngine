@@ -9,7 +9,9 @@
 #include "types.h"
 #include "system.h"
 
+#ifndef __AMIGA__
 #define TFE_PROFILE_ENABLED 1
+#endif
 
 #define TOKENPASTE(x, y) x ## y
 #define TOKENPASTE2(x, y) TOKENPASTE(x, y)

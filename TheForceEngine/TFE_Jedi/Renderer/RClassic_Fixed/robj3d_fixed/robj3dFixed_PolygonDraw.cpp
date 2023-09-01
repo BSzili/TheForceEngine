@@ -14,6 +14,10 @@
 #include "../rclassicFixedSharedState.h"
 #include "../rlightingFixed.h"
 #include "../../rcommon.h"
+#ifdef __AMIGA__
+#define s_width (320)
+#define s_height (200)
+#endif
 
 namespace TFE_Jedi
 {
@@ -230,8 +234,12 @@ namespace RClassic_Fixed
 				const s32 x0 = cur->x;
 				const s32 x1 = next->x;
 				const fixed16_16 dX = intToFixed16(x1 - x0);
+#ifdef __AMIGA__
+				const fixed16_16 dXdY = dX / dy;
+#else
 				const fixed16_16 dY = intToFixed16(dy);
 				const fixed16_16 dXdY = div16(dX, dY);
+#endif
 
 				s_edgeRight_X0_Pixel = x0;
 				s_edgeRight_X0 = intToFixed16(x0);
@@ -240,7 +248,11 @@ namespace RClassic_Fixed
 				s_edgeRight_dXdY = dXdY;
 				s_edgeRight_Z0 = cur->z;
 
+#ifdef __AMIGA__
+				s_edgeRight_dZmdY = (next->z - cur->z) * dy;
+#else
 				s_edgeRight_dZmdY = mul16(next->z - cur->z, dY);
+#endif
 				s_edgeRightIndex = nextIndex;
 				return 0;
 			}
@@ -287,8 +299,12 @@ namespace RClassic_Fixed
 				const s32 x0 = cur->x;
 				const s32 x1 = prev->x;
 				const fixed16_16 dX = intToFixed16(x1 - x0);
+#ifdef __AMIGA__
+				const fixed16_16 dXdY = dX / dy;
+#else
 				const fixed16_16 dY = intToFixed16(dy);
 				const fixed16_16 dXdY = div16(dX, dY);
+#endif
 
 				s_edgeLeft_X0_Pixel = x0;
 				s_edgeLeft_X0 = intToFixed16(x0);
@@ -297,7 +313,11 @@ namespace RClassic_Fixed
 				s_edgeLeft_dXdY = dXdY;
 				s_edgeLeft_Z0 = cur->z;
 
+#ifdef __AMIGA__
+				s_edgeLeft_dZmdY = (prev->z - cur->z) * dy;
+#else
 				s_edgeLeft_dZmdY = mul16(prev->z - cur->z, dY);
+#endif
 				s_edgeLeftIndex = prevIndex;
 				return 0;
 			}

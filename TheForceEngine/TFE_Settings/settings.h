@@ -28,11 +28,13 @@ enum ColorMode
 	COLORMODE_COUNT,
 };
 
+#ifndef __AMIGA__
 static const char* c_tfeSkyModeStrings[] =
 {
 	"Vanilla",		// SKYMODE_VANILLA
 	"Cylinder",		// SKYMODE_CYLINDER
 };
+#endif
 
 struct TFE_Settings_Window
 {
@@ -116,6 +118,7 @@ enum FontSize
 	FONT_XL
 };
 
+#ifndef __AMIGA__
 static const char* c_tfeHudScaleStrings[] =
 {
 	"Proportional",		// TFE_HUDSCALE_PROPORTIONAL
@@ -135,6 +138,7 @@ static const char* c_tfePitchLimit[] =
 	"High     (75 degrees)",
 	"Maximum"
 };
+#endif
 
 struct TFE_Settings_Hud
 {

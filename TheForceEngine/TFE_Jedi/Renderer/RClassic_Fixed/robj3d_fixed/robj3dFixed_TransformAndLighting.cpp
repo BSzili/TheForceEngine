@@ -5,6 +5,10 @@
 #include "../rclassicFixedSharedState.h"
 #include "../rlightingFixed.h"
 #include "../../rcommon.h"
+#ifdef __AMIGA__
+#define s_width (320)
+#define s_height (200)
+#endif
 
 namespace TFE_Jedi
 {

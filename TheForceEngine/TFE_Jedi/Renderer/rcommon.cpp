@@ -112,6 +112,10 @@ namespace TFE_Jedi
 				{
 					outBuffer[y] = *colData;
 				}
+#ifdef __AMIGA__
+				// put the index last visible texel at the end of the buffer
+				outBuffer[height] = y;
+#endif
 			}
 		}
 	}

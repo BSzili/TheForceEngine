@@ -6,6 +6,10 @@
 #include "robj3dFixed_TransformAndLighting.h"
 #include "../rclassicFixedSharedState.h"
 #include "../../rcommon.h"
+#ifdef __AMIGA__
+#define s_width (320)
+#define s_height (200)
+#endif
 
 namespace TFE_Jedi
 {
@@ -66,7 +70,11 @@ namespace RClassic_Fixed
 				zAve += s_verticesVS[indices[v]].z;
 			}
 
+#ifdef __AMIGA__
+			polygon->zAve = zAve / vertexCount; // Todo IS this ok?
+#else
 			polygon->zAve = div16(zAve, intToFixed16(vertexCount));
+#endif
 			*visPolygon = polygon;
 			visPolygon++;
 		}

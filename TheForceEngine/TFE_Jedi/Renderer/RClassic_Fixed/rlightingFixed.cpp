@@ -4,6 +4,10 @@
 #include "rclassicFixed.h"
 #include "../rcommon.h"
 #include "../rlimits.h"
+#ifdef __AMIGA__
+#define s_width (320)
+#define s_height (200)
+#endif
 
 namespace TFE_Jedi
 {

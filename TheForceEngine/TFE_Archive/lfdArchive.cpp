@@ -64,7 +64,9 @@ bool LfdArchive::open(const char *archivePath)
 	}
 
 	strcpy(m_archivePath, archivePath);
+#ifndef __AMIGA__
 	m_file.close();
+#endif
 
 	return true;
 }
@@ -86,7 +88,9 @@ bool LfdArchive::openFile(const char *file)
 {
 	if (!m_archiveOpen) { return false; }
 
+#ifndef __AMIGA__
 	m_file.open(m_archivePath, Stream::MODE_READ);
+#endif
 	m_curFile = -1;
 	m_fileOffset = 0;
 
@@ -102,7 +106,9 @@ bool LfdArchive::openFile(const char *file)
 
 	if (m_curFile == -1)
 	{
+#ifndef __AMIGA__
 		m_file.close();
+#endif
 		TFE_System::logWrite(LOG_ERROR, "LFD", "Failed to load \"%s\" from \"%s\"", file, m_archivePath);
 	}
 	else
@@ -118,7 +124,9 @@ bool LfdArchive::openFile(u32 index)
 
 	m_curFile = s32(index);
 	m_fileOffset = 0;
+#ifndef __AMIGA__
 	m_file.open(m_archivePath, Stream::MODE_READ);
+#endif
 	m_file.seek(m_fileList.entries[m_curFile].IX);
 	return true;
 }
@@ -126,7 +134,9 @@ bool LfdArchive::openFile(u32 index)
 void LfdArchive::closeFile()
 {
 	m_curFile = -1;
+#ifndef __AMIGA__
 	m_file.close();
+#endif
 }
 
 u32 LfdArchive::getFileIndex(const char* file)

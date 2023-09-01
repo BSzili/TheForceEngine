@@ -8,6 +8,9 @@
 #include <strings.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#ifdef __AMIGA__
+#include <limits.h> // PATH_MAX
+#endif
 #include <TFE_System/system.h>
 #include "fileutil.h"
 #include "filestream.h"
@@ -89,7 +92,18 @@ namespace FileUtil
 
 	bool makeDirectory(const char *dir)
 	{
+#ifdef __AMIGA__
+		char buf[PATH_MAX], *c;
+		strncpy(buf, dir, sizeof(buf));
+		// kill trailing slash
+		c = strrchr(buf, '/');
+		if (c)
+			*c = 0;
+
+		if (!mkdir(buf, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH) || errno == EEXIST)
+#else
 		if (!mkdir(dir, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH) || errno == EEXIST)
+#endif
 			return true;
 		return false;
 	}
@@ -225,6 +239,23 @@ namespace FileUtil
 
 	bool directoryExits(const char *path, char *outPath)
 	{
+#ifdef __AMIGA__
+		struct stat st;
+		char buf[PATH_MAX], *c;
+
+		strncpy(buf, path, sizeof(buf));
+		// kill trailing slash
+		c = strrchr(buf, '/');
+		if (c)
+			*c = 0;
+
+		if (stat(buf, &st) || !S_ISDIR(st.st_mode))
+			return false;
+
+		if (outPath)
+			snprintf(outPath, TFE_MAX_PATH, "%s/", buf);
+		return true;
+#else
 		char *ret;
 
 		ret = findFileObjectNoCase(path, true);
@@ -236,6 +267,7 @@ namespace FileUtil
 			snprintf(outPath, TFE_MAX_PATH, "%s/", ret);
 		free(ret);
 		return true;
+#endif
 	}
 
 	bool exists(const char *path)
@@ -323,7 +355,16 @@ namespace FileUtil
 
 	char *findFileNoCase(const char *filename)
 	{
+#ifdef __AMIGA__
+		struct stat st;
+
+		if (stat(filename, &st) || !S_ISREG(st.st_mode))
+			return nullptr;
+
+		return strdup(filename);
+#else
 		return findFileObjectNoCase(filename, false);
+#endif
 	}
 
 	bool existsNoCase(const char *filename)
@@ -348,7 +389,12 @@ namespace FileUtil
 			TFE_System::logWrite(LOG_WARNING, "getModifiedTime", "stat(%s) failed with %d\n", path, errno);
 			return (u64)-1;  // revisit
 		}
+#ifdef __AMIGA__
+		tslw.tv_sec = st.st_mtime;
+		tslw.tv_nsec = 0;
+#else
 		tslw = st.st_mtim;
+#endif
 		mtim = (u64)tslw.tv_sec * 10000 + (u64) ((double)tslw.tv_nsec / 100.0);
 
 		return mtim;

@@ -23,7 +23,11 @@ namespace TFE_Input
 	{
 		// System
 		{ IAS_CONSOLE,         ITYPE_KEYBOARD, KEY_GRAVE },
+#ifdef __AMIGA__
+		{ IAS_SYSTEM_MENU,     ITYPE_KEYBOARD, KEY_LCTRL }, // strafe modifier
+#else
 		{ IAS_SYSTEM_MENU,     ITYPE_KEYBOARD, KEY_F1, KEYMOD_ALT },
+#endif
 
 		// General
 		{ IADF_MENU_TOGGLE,     ITYPE_KEYBOARD, KEY_ESCAPE },
@@ -67,7 +71,11 @@ namespace TFE_Input
 		{ IADF_CENTER_VIEW,     ITYPE_KEYBOARD, KEY_C },
 		{ IADF_RUN,             ITYPE_KEYBOARD, KEY_LSHIFT },
 		{ IADF_SLOW,            ITYPE_KEYBOARD, KEY_CAPSLOCK },
+#ifdef __AMIGA__
+		{ IADF_CROUCH,          ITYPE_KEYBOARD, KEY_LALT },
+#else
 		{ IADF_CROUCH,          ITYPE_KEYBOARD, KEY_LCTRL },
+#endif
 		{ IADF_JUMP,            ITYPE_KEYBOARD, KEY_SPACE },
 		{ IADF_USE,             ITYPE_KEYBOARD, KEY_E },
 		{ IADF_WEAPON_1,        ITYPE_KEYBOARD, KEY_1 },
@@ -97,7 +105,11 @@ namespace TFE_Input
 		{ IADF_CROUCH, ITYPE_CONTROLLER, CONTROLLER_BUTTON_X },
 		{ IADF_USE,    ITYPE_CONTROLLER, CONTROLLER_BUTTON_Y },
 
+#ifdef __AMIGA__
+		{ IADF_MENU_TOGGLE, ITYPE_CONTROLLER, CONTROLLER_BUTTON_START },
+#else
 		{ IADF_MENU_TOGGLE, ITYPE_CONTROLLER, CONTROLLER_BUTTON_GUIDE },
+#endif
 
 		{ IADF_PRIMARY_FIRE,   ITYPE_CONTROLLER_AXIS, AXIS_RIGHT_TRIGGER },
 		{ IADF_SECONDARY_FIRE, ITYPE_CONTROLLER_AXIS, AXIS_LEFT_TRIGGER },
@@ -279,10 +291,12 @@ namespace TFE_Input
 		{
 			inputMapping_addBinding(&s_defaultKeyboardBinds[i]);
 		}
+#ifndef __AMIGA__
 		for (s32 i = 0; i < TFE_ARRAYSIZE(s_defaultControllerBinds); i++)
 		{
 			inputMapping_addBinding(&s_defaultControllerBinds[i]);
 		}
+#endif
 	}
 
 	void inputMapping_endFrame()
@@ -377,6 +391,22 @@ namespace TFE_Input
 				} break;
 			}
 		}
+#ifdef __AMIGA__
+			// strafe modifier
+			if (s_actions[IAS_SYSTEM_MENU])
+			{
+				if (s_actions[IADF_TURN_LT])
+				{
+					s_actions[IADF_STRAFE_LT] = s_actions[IADF_TURN_LT];
+					s_actions[IADF_TURN_LT] = STATE_UP;
+				}
+				if (s_actions[IADF_TURN_RT])
+				{
+					s_actions[IADF_STRAFE_RT] = s_actions[IADF_TURN_RT];
+					s_actions[IADF_TURN_RT] = STATE_UP;
+				}
+			}
+#endif
 	}
 
 	void inputMapping_removeState(InputAction action)

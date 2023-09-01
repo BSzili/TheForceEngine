@@ -129,8 +129,13 @@ namespace TFE_DarkForces
 			fixed16_16 z = div16(div16(numerator, intToFixed16(sy - TCRAWL_YORIGIN)), TCRAWL_PIXELSIZE);
 			s_aRowOffset[index] = intToFixed16(s_bitmapHeight) - z;
 
+#ifdef __AMIGA__
+			fixed16_16 xl = div16(FIXED(-floor16(TCRAWL_WIDTH) / 2 * floor16(TCRAWL_VIEWDIST)), z);
+			fixed16_16 xr = div16(FIXED( floor16(TCRAWL_WIDTH) / 2 * floor16(TCRAWL_VIEWDIST)), z);
+#else
 			fixed16_16 xl = div16(mul16(-TCRAWL_WIDTH >> 1, TCRAWL_VIEWDIST), z);
 			fixed16_16 xr = div16(mul16( TCRAWL_WIDTH >> 1, TCRAWL_VIEWDIST), z);
+#endif
 			s_aRowWidth[index] = round16(xr - xl);
 			s_aRowStart[index] = round16(xl) + TCRAWL_XORIGIN;
 

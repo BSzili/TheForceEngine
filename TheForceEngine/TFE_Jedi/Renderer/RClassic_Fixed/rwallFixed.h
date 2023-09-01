@@ -34,7 +34,9 @@ namespace TFE_Jedi
 		void wall_drawSkyBottom(RSector* sector);
 		void wall_drawSkyBottomNoWall(RSector* sector);
 
+#ifndef __AMIGA__
 		void wall_addAdjoinSegment(s32 length, s32 x0, fixed16_16 top_dydx, fixed16_16 y1, fixed16_16 bot_dydx, fixed16_16 y0, RWallSegmentFixed* wallSegment);
+#endif
 
 		// Sprite code for now because so much is shared.
 		void sprite_drawFrame(u8* basePtr, WaxFrame* frame, SecObject* obj);

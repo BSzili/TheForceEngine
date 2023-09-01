@@ -71,9 +71,21 @@ namespace TFE_DarkForces
 	s32 s_mapLayer;
 
 	void automap_projectPosition(fixed16_16* x, fixed16_16* z);
+#ifdef __AMIGA__
+	static inline
+#endif
 	void automap_drawPointWithRadius(fixed16_16 x, fixed16_16 z, fixed16_16 r, u8 color);
+#ifdef __AMIGA__
+	static inline
+#endif
 	void automap_drawPointWithDirection(fixed16_16 x, fixed16_16 z, angle14_32 angle, fixed16_16 len, u8 color);
+#ifdef __AMIGA__
+	static inline
+#endif
 	void automap_drawPoint(fixed16_16 x, fixed16_16 z, u8 color);
+#ifdef __AMIGA__
+	static inline
+#endif
 	void automap_drawLine(fixed16_16 px1, fixed16_16 pz1, fixed16_16 px2, fixed16_16 pz2, u8 color);
 	void automap_drawWall(RWall* wall, u8 color);
 	void automap_drawObject(SecObject* obj);
@@ -402,6 +414,9 @@ namespace TFE_DarkForces
 		*z = floor16(*z) + s_mapZCenterInPixels;
 	}
 
+#ifdef __AMIGA__
+	static inline
+#endif
 	void automap_drawPointWithRadius(fixed16_16 x, fixed16_16 z, fixed16_16 r, u8 color)
 	{
 		ScreenRect* screenRect = vfb_getScreenRect(VFB_RECT_RENDER);
@@ -410,6 +425,9 @@ namespace TFE_DarkForces
 		screen_drawCircle(screenRect, x, z, rScreen, 0x1c7, color, s_mapFramebuffer);
 	}
 
+#ifdef __AMIGA__
+	static inline
+#endif
 	void automap_drawPointWithDirection(fixed16_16 x, fixed16_16 z, angle14_32 angle, fixed16_16 len, u8 color)
 	{
 		fixed16_16 x0 = x;
@@ -454,6 +472,9 @@ namespace TFE_DarkForces
 		automap_drawLine(px1, pz1, px2, pz2, color);
 	}
 
+#ifdef __AMIGA__
+	static inline
+#endif
 	void automap_drawPoint(fixed16_16 x, fixed16_16 z, u8 color)
 	{
 		ScreenRect* screenRect = vfb_getScreenRect(VFB_RECT_RENDER);
@@ -461,6 +482,9 @@ namespace TFE_DarkForces
 		screen_drawPoint(screenRect, x, z, color, s_mapFramebuffer);
 	}
 
+#ifdef __AMIGA__
+	static inline
+#endif
 	void automap_drawLine(fixed16_16 x0, fixed16_16 z0, fixed16_16 x1, fixed16_16 z1, u8 color)
 	{
 		ScreenRect* screenRect = vfb_getScreenRect(VFB_RECT_RENDER);

@@ -61,7 +61,11 @@ namespace TFE_DarkForces
 
 		s32 mx, my;
 		TFE_Input::getMousePos(&mx, &my);
+#ifdef __AMIGA__
+		s_cursorPosAccum = { mx, my };
+#else
 		s_cursorPosAccum = { 12*mx/10, my };	// Account for 320x200 in 4:3 scaling.
+#endif
 
 		if (displayInfo.width >= displayInfo.height)
 		{

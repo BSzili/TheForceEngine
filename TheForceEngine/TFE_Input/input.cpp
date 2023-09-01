@@ -140,6 +140,14 @@ namespace TFE_Input
 	{
 		strcpy(s_bufferedText, text);
 	}
+	
+#ifdef __AMIGA__
+	void setBufferedChar(char ch)
+	{
+		s_bufferedText[0] = ch;
+		s_bufferedText[1] = 0;
+	}
+#endif
 
 	void setBufferedKey(KeyboardCode key)
 	{

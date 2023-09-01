@@ -11,6 +11,17 @@
 
 using namespace TFE_Input;
 
+#ifdef __AMIGA__
+namespace TFE_Settings
+{
+	static const char* c_gameName[] =
+	{
+		"Dark Forces",
+		"Outlaws",
+	};
+}
+#endif
+
 namespace TFE_SaveSystem
 {
 	enum SaveRequest
@@ -312,7 +323,11 @@ namespace TFE_SaveSystem
 	{
 		char relativeBasePath[TFE_MAX_PATH];
 		TFE_Paths::appendPath(PATH_USER_DOCUMENTS, "Saves/", relativeBasePath);
+#ifdef __AMIGA__
+		if (!FileUtil::directoryExits(relativeBasePath))
+#else
 		if (!FileUtil::directoryExits(s_gameSavePath))
+#endif
 		{
 			FileUtil::makeDirectory(relativeBasePath);
 		}

@@ -282,10 +282,12 @@ namespace TFE_DarkForces
 			hud_convertCapsToBM();
 		#endif
 
+#ifndef __AMIGA__
 		// TFE:
 		// Load the caps
 		s_hudCapLeft  = hud_loadTexture("HudStatusLeftAddon.bm");
 		s_hudCapRight = hud_loadTexture("HudStatusRightAddon.bm");
+#endif
 	}
 		
 	void hud_updateBasePalette(u8* srcBuffer, s32 offset, s32 count)
@@ -395,6 +397,17 @@ namespace TFE_DarkForces
 			displayHudMessage(s_hudFont, (DrawRect*)vfb_getScreenRect(VFB_RECT_UI), 164 + xOffset, 10, dataStr, framebuffer);
 			// s_screenDirtyRight[s_curFrameBufferIdx] = JTRUE;
 		}
+#ifdef __AMIGA__
+		TFE_Settings_Graphics* graphics = TFE_Settings::getGraphicsSettings();
+		if (graphics->showFps)
+		{
+			u8 dataStr[64];
+			static u64 localTimeCallback = 0;
+			f64 deltaTime = TFE_System::updateThreadLocal(&localTimeCallback);
+			sprintf((char*)dataStr, "%2d fps (%4.2f ms)", (int)(1.0 / deltaTime), deltaTime * 1000.0);
+			displayHudMessage(s_hudFont, (DrawRect*)vfb_getScreenRect(VFB_RECT_UI), 0, 1, dataStr, framebuffer);
+		}
+#endif
 	}
 
 	void hud_drawStringGpu(Font* font, fixed16_16 x0, fixed16_16 y0, fixed16_16 xScale, fixed16_16 yScale, const char* str)

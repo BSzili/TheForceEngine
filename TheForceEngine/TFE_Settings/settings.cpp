@@ -68,6 +68,21 @@ namespace TFE_Settings
 		"CVar",
 	};
 
+#ifdef __AMIGA__
+	static const char* c_gameName[] =
+	{
+		"Dark Forces",
+		"Outlaws",
+	};
+
+	// A file that should be checked to double-check the found path actually works.
+	static const char* c_validationFile[Game_Count] =
+	{
+		"DARK.GOB",				// Game_Dark_Forces
+		"OUTLAWS.LAB",			// Game_Outlaws
+	};
+#endif
+
 	//////////////////////////////////////////////////////////////////////////////////
 	// Forward Declarations
 	//////////////////////////////////////////////////////////////////////////////////
@@ -197,6 +212,7 @@ namespace TFE_Settings
 								     c_validationFile[gameId], s_gameSettings.header[gameId].sourcePath);
 			}
 #endif
+#ifndef __AMIGA__
 			// If the registry approach fails, just try looking in the various hardcoded paths.
 			if (!pathValid)
 			{
@@ -212,6 +228,7 @@ namespace TFE_Settings
 					}
 				}
 			}
+#endif
 		}
 		writeToDisk();
 	}
@@ -405,8 +422,10 @@ namespace TFE_Settings
 	void writeHudSettings(FileStream& settings)
 	{
 		writeHeader(settings, c_sectionNames[SECTION_HUD]);
+#ifndef __AMIGA__
 		writeKeyValue_String(settings, "hudScale", c_tfeHudScaleStrings[s_hudSettings.hudScale]);
 		writeKeyValue_String(settings, "hudPos", c_tfeHudPosStrings[s_hudSettings.hudPos]);
+#endif
 		writeKeyValue_Float(settings, "scale", s_hudSettings.scale);
 		writeKeyValue_Int(settings, "pixelOffsetLeft", s_hudSettings.pixelOffset[0]);
 		writeKeyValue_Int(settings, "pixelOffsetRight", s_hudSettings.pixelOffset[1]);
@@ -793,6 +812,7 @@ namespace TFE_Settings
 	{
 		if (strcasecmp("hudScale", key) == 0)
 		{
+#ifndef __AMIGA__
 			for (size_t i = 0; i < TFE_ARRAYSIZE(c_tfeHudScaleStrings); i++)
 			{
 				if (strcasecmp(value, c_tfeHudScaleStrings[i]) == 0)
@@ -801,9 +821,11 @@ namespace TFE_Settings
 					break;
 				}
 			}
+#endif
 		}
 		else if (strcasecmp("hudPos", key) == 0)
 		{
+#ifndef __AMIGA__
 			for (size_t i = 0; i < TFE_ARRAYSIZE(c_tfeHudPosStrings); i++)
 			{
 				if (strcasecmp(value, c_tfeHudPosStrings[i]) == 0)
@@ -812,6 +834,7 @@ namespace TFE_Settings
 					break;
 				}
 			}
+#endif
 		}
 		else if (strcasecmp("scale", key) == 0)
 		{

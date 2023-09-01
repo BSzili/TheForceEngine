@@ -411,7 +411,11 @@ namespace TFE_DarkForces
 				// The sound will be attenuated based on distance.
 				fixed16_16 ratio = div16(CUE_RING2 - dist, CUE_RING2 - CUE_RING1);
 				assert(ratio >= 0 && ratio <= ONE_16);
+#ifdef __AMIGA__
+				volume = floor16(ratio * sound->volume);
+#else
 				volume = floor16(mul16(ratio, intToFixed16(sound->volume)));
+#endif
 				volume = min(127, volume);
 			}
 		}

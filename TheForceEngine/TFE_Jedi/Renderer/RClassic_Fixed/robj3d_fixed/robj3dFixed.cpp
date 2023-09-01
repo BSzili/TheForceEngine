@@ -11,6 +11,10 @@
 #include "robj3dFixed_PolygonDraw.h"
 #include "../rclassicFixedSharedState.h"
 #include "../../rcommon.h"
+#ifdef __AMIGA__
+#define s_width (320)
+#define s_height (200)
+#endif
 
 namespace TFE_Jedi
 {
@@ -85,8 +89,14 @@ namespace RClassic_Fixed
 			const fixed16_16 z = vertex->z;
 			if (z <= ONE_16) { continue; }
 
+#ifdef __AMIGA__
+			const fixed16_16 rcpZ = div16(ONE_16, z);
+			const s32 pixel_x = round16(mul16((vertex->x * s_rcfState.focalLength),    rcpZ) + s_rcfState.projOffsetX);
+			const s32 pixel_y = round16(mul16((vertex->y * s_rcfState.focalLenAspect), rcpZ) + s_rcfState.projOffsetY);
+#else
 			const s32 pixel_x = round16(div16(mul16(vertex->x, s_rcfState.focalLength),    z) + s_rcfState.projOffsetX);
 			const s32 pixel_y = round16(div16(mul16(vertex->y, s_rcfState.focalLenAspect), z) + s_rcfState.projOffsetY);
+#endif
 
 			// If the X position is out of view, skip the vertex.
 			if (pixel_x < s_minScreenX_Pixels || pixel_x > s_maxScreenX_Pixels)
@@ -107,8 +117,14 @@ namespace RClassic_Fixed
 	{
 		for (s32 i = 0; i < count; i++, pos++, out++)
 		{
+#ifdef __AMIGA__
+			const fixed16_16 rcpZ = div16(ONE_16, pos->z);
+			out->x = round16(mul16((pos->x * s_rcfState.focalLength),    rcpZ) + s_rcfState.projOffsetX);
+			out->y = round16(mul16((pos->y * s_rcfState.focalLenAspect), rcpZ) + s_rcfState.projOffsetY);
+#else
 			out->x = round16(div16(mul16(pos->x, s_rcfState.focalLength),    pos->z) + s_rcfState.projOffsetX);
 			out->y = round16(div16(mul16(pos->y, s_rcfState.focalLenAspect), pos->z) + s_rcfState.projOffsetY);
+#endif
 			out->z = pos->z;
 		}
 	}

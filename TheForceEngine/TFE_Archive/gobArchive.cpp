@@ -85,7 +85,9 @@ bool GobArchive::open(const char *archivePath)
 	}
 
 	strcpy(m_archivePath, archivePath);
+#ifndef __AMIGA__
 	m_file.close();
+#endif
 
 	return true;
 }
@@ -103,7 +105,9 @@ bool GobArchive::openFile(const char *file)
 {
 	if (!m_archiveOpen) { return false; }
 
+#ifndef __AMIGA__
 	m_file.open(m_archivePath, Stream::MODE_READ);
+#endif
 	m_curFile = -1;
 	m_fileOffset = 0;
 
@@ -119,7 +123,9 @@ bool GobArchive::openFile(const char *file)
 
 	if (m_curFile == -1)
 	{
+#ifndef __AMIGA__
 		m_file.close();
+#endif
 		TFE_System::logWrite(LOG_ERROR, "GOB", "Failed to load \"%s\" from \"%s\"", file, m_archivePath);
 	}
 	else
@@ -135,7 +141,9 @@ bool GobArchive::openFile(u32 index)
 
 	m_curFile = s32(index);
 	m_fileOffset = 0;
+#ifndef __AMIGA__
 	m_file.open(m_archivePath, Stream::MODE_READ);
+#endif
 	m_file.seek(m_fileList.entries[m_curFile].IX);
 	return true;
 }
@@ -143,7 +151,9 @@ bool GobArchive::openFile(u32 index)
 void GobArchive::closeFile()
 {
 	m_curFile = -1;
+#ifndef __AMIGA__
 	m_file.close();
+#endif
 }
 
 u32 GobArchive::getFileIndex(const char* file)

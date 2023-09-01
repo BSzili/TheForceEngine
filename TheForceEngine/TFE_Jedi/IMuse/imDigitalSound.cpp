@@ -13,7 +13,11 @@
 
 namespace TFE_Jedi
 {
+#ifdef __AMIGA__
+	#define MAX_SOUND_CHANNELS 8
+#else
 	#define MAX_SOUND_CHANNELS 16
+#endif
 	#define DEFAULT_SOUND_CHANNELS 8
 	#define AUDIO_BUFFER_SIZE 512
 	
@@ -70,13 +74,22 @@ namespace TFE_Jedi
 
 	// In DOS these are 8-bit outputs since that is what the driver is accepting.
 	// For TFE, floating-point audio output is used, so these convert to floating-point.
+#ifdef __AMIGA__
+	static s8  s_audioNormalizationMem[MAX_SOUND_CHANNELS * 256 + 4];
+#else
 	static f32  s_audioNormalizationMem[MAX_SOUND_CHANNELS * 256 + 4];
+#endif
 	// Normalizes the sum of all audio playback (16-bit) to a [-1,1) floating point value.
 	// The mapping can be addressed with negative values (i.e. s_audioNormalization[-16]), which is why
 	// it is built this way.
+#ifdef __AMIGA__
+	static s8* s_audioNormalization = &s_audioNormalizationMem[MAX_SOUND_CHANNELS * 128 + 4];
+	static s8* s_audioDriverOut;
+#else
 	static f32* s_audioNormalization = &s_audioNormalizationMem[MAX_SOUND_CHANNELS * 128 + 4];
 
 	static f32* s_audioDriverOut;
+#endif
 	static s16 s_audioOut[AUDIO_BUFFER_SIZE + IM_AUDIO_OVERSAMPLE];	// Add 2 stereo samples from the next frame for interpolation.
 	static s32 s_audioOutSize;
 	static u8* s_audioData;
@@ -193,7 +206,11 @@ namespace TFE_Jedi
 	void ImUpdateWave(f32* buffer, u32 bufferSize, f32 systemVolume)
 	{
 		// Prepare buffers.
+#ifdef __AMIGA__
+		s_audioDriverOut = (s8*)buffer;
+#else
 		s_audioDriverOut = buffer;
+#endif
 		s_audioOutSize = bufferSize;
 		assert(bufferSize * 2 <= AUDIO_BUFFER_SIZE);
 		memset(s_audioOut, 0, (2*bufferSize + IM_AUDIO_OVERSAMPLE) * sizeof(s16));
@@ -243,8 +260,13 @@ namespace TFE_Jedi
 			volumeOffset >>= 8;
 
 			// These values are 8-bit in DOS, but converted to floating point for TFE.
+#ifdef __AMIGA__
+			s_audioNormalization[i] = (volumeMidPoint + volumeOffset) - 128;
+			s_audioNormalization[-i - 1] = (volumeMidPoint - volumeOffset - 1) - 128;
+#else
 			s_audioNormalization[i] = f32(volumeMidPoint + volumeOffset) / 128.0f - 1.0f;
 			s_audioNormalization[-i - 1] = f32(volumeMidPoint - volumeOffset - 1) / 128.0f - 1.0f;
+#endif
 		}
 		return imSuccess;
 	}
@@ -695,7 +717,12 @@ namespace TFE_Jedi
 		const s8* leftMapping  = (s8*)&s_audioVolumeToSignedMapping[leftVolume  << 8];
 		const s8* rightMapping = (s8*)&s_audioVolumeToSignedMapping[rightVolume << 8];
 
+#ifdef __AMIGA__
+		// TODO HACK! the left and right channels have to have reversed for AHI
+		digitalAudioOutput_Stereo(&s_audioOut[outOffset * 2], audioFrame, rightMapping, leftMapping, size);
+#else
 		digitalAudioOutput_Stereo(&s_audioOut[outOffset * 2], audioFrame, leftMapping, rightMapping, size);
+#endif
 	}
 
 	s32 audioPlaySoundFrame(ImWaveSound* sound)
@@ -744,10 +771,19 @@ namespace TFE_Jedi
 
 		s32 bufferSize = s_audioOutSize*2 + IM_AUDIO_OVERSAMPLE;
 		s16* audioOut  = s_audioOut;
+#ifdef __AMIGA__
+		s8* driverOut = s_audioDriverOut;
+#else
 		f32* driverOut = s_audioDriverOut;
+#endif
 		for (s32 i = 0; i < bufferSize; i++, audioOut++, driverOut++)
 		{
+#ifdef __AMIGA__
+			*driverOut = s_audioNormalization[*audioOut];
+			//*driverOut = sinf(((i/2) / 512.0f * 8.0f) * M_PI*2) * 127.0f;
+#else
 			*driverOut = s_audioNormalization[*audioOut] * systemVolume;
+#endif
 		}
 		return imSuccess;
 	}

@@ -16,6 +16,10 @@
 #include "rclassicFixedSharedState.h"
 #include "robj3d_fixed/robj3dFixed.h"
 #include "../rcommon.h"
+#ifdef __AMIGA__
+#define s_width (320)
+#define s_height (200)
+#endif
 
 using namespace TFE_Jedi::RClassic_Fixed;
 
@@ -120,10 +124,18 @@ namespace TFE_Jedi
 
 						// Cull against the current "window."
 						const fixed16_16 z = curObj->posVS.z;
+#ifdef __AMIGA__
+						const s32 x0 = round16(div16((xMin * s_rcfState.focalLength), z)) + s_screenXMid;
+#else
 						const s32 x0 = round16(div16(mul16(xMin, s_rcfState.focalLength), z)) + s_screenXMid;
+#endif
 						if (x0 > s_windowMaxX_Pixels) { continue; }
 
+#ifdef __AMIGA__
+						const s32 x1 = round16(div16((xMax * s_rcfState.focalLength), z)) + s_screenXMid;
+#else
 						const s32 x1 = round16(div16(mul16(xMax, s_rcfState.focalLength), z)) + s_screenXMid;
+#endif
 						if (x1 < s_windowMinX_Pixels) { continue; }
 
 						// Finally add the object to render.

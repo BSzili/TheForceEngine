@@ -513,7 +513,11 @@ namespace TFE_DarkForces
 			TFE_Jedi::beginRender();
 
 			// Handle delta time.
+#ifdef __AMIGA__
+			s_deltaTime = intToFixed16(s_curTick - s_prevTick) / TICKS_PER_SECOND;
+#else
 			s_deltaTime = div16(intToFixed16(s_curTick - s_prevTick), FIXED(TICKS_PER_SECOND));
+#endif
 			s_deltaTime = min(s_deltaTime, MAX_DELTA_TIME);
 			s_prevTick  = s_curTick;
 			s_playerTick = s_curTick;
@@ -562,7 +566,11 @@ namespace TFE_DarkForces
 					{
 						TFE_System::postSystemUiRequest();
 					}
+#ifdef __AMIGA__
+					s_palModified = JTRUE;
+#else
 					blankScreen();
+#endif
 				}
 				else if (action == ESC_ABORT_OR_NEXT)
 				{
@@ -593,6 +601,9 @@ namespace TFE_DarkForces
 				{
 					mission_pause(JFALSE);
 					resumeLevelSound();
+#ifdef __AMIGA__
+					s_palModified = JTRUE;
+#endif
 				}
 			}
 			else if (inputMapping_getActionState(IADF_MENU_TOGGLE) == STATE_PRESSED && !s_playerDying && !TFE_FrontEndUI::isConsoleOpen())
@@ -823,6 +834,12 @@ namespace TFE_DarkForces
 			s_palModified = JFALSE;
 		}
 	#endif
+#ifdef __AMIGA__
+		if (!s_luminanceMask[0] && !s_luminanceMask[1] && !s_luminanceMask[2] && !s_healthFxLevel && !s_shieldFxLevel && !s_flashFxLevel && s_screenBrightness == ONE_16)
+		{
+			s_palModified = JFALSE;
+		}
+#endif
 	}
 
 	void setCurrentColorMap(u8* colorMap, u8* lightRamp)

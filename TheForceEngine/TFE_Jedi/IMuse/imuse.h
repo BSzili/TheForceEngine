@@ -102,7 +102,11 @@ enum iMuseErrorCode
 	imIllegalErr     = -7
 };
 
+#ifdef __AMIGA__
+#define IM_AUDIO_OVERSAMPLE 0
+#else
 #define IM_AUDIO_OVERSAMPLE 2
+#endif
 
 namespace TFE_Jedi
 {

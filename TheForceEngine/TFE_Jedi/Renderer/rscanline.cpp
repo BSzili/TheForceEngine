@@ -4,6 +4,9 @@
 
 namespace TFE_Jedi
 {
+#ifdef __AMIGA__
+	static inline
+#endif
 	bool flat_buildScanlineCeiling(s32& i, s32 count, s32& x, s32 y, s32& left, s32& right, s32& scanlineLength, const EdgePairFixed* edges)
 	{
 		// Search for the left edge of the scanline.
@@ -111,6 +114,9 @@ namespace TFE_Jedi
 		return true;
 	}
 
+#ifdef __AMIGA__
+	static inline
+#endif
 	bool flat_buildScanlineFloor(s32& i, s32 count, s32& x, s32 y, s32& left, s32& right, s32& scanlineLength, const EdgePairFixed* edges)
 	{
 		// Search for the left edge of the scanline.
@@ -218,6 +224,9 @@ namespace TFE_Jedi
 		return true;
 	}
 
+#ifdef __AMIGA__
+	static
+#endif
 	void clipScanline(s32* left, s32* right, s32 y)
 	{
 		s32 x0 = *left;
