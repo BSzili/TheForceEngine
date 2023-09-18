@@ -252,7 +252,7 @@ static void parseTooltypes(int argc, char *argv[])
 	if ((appicon = GetDiskObject((STRPTR)exename))) {
 		char *value;
 
-		if ((value = (char *)FindToolType((CONST_STRPTR *)appicon->do_ToolTypes, (CONST_STRPTR)"FORCEMODE"))) {
+		if ((value = (char *)FindToolType((CONST STRPTR *)appicon->do_ToolTypes, (CONST STRPTR)"FORCEMODE"))) {
 			if (!strcmp(value, "NTSC"))
 				fsMonitorID = NTSC_MONITOR_ID;
 			else if (!strcmp(value, "PAL"))
@@ -272,7 +272,7 @@ static void parseTooltypes(int argc, char *argv[])
 		}
 
 /*
-		if ((value = (char *)FindToolType((CONST_STRPTR *)appicon->do_ToolTypes, (CONST_STRPTR)"FORCEID"))) {
+		if ((value = (char *)FindToolType((CONST STRPTR *)appicon->do_ToolTypes, (CONST STRPTR)"FORCEID"))) {
 			int id;
 			if (sscanf(value, "%x", &id) == 1) {
 				fsModeID = id;
@@ -281,11 +281,11 @@ static void parseTooltypes(int argc, char *argv[])
 		}
 */
 
-		if ((value = (char *)FindToolType((CONST_STRPTR *)appicon->do_ToolTypes, (CONST_STRPTR)"PUBSCREEN"))) {
+		if ((value = (char *)FindToolType((CONST STRPTR *)appicon->do_ToolTypes, (CONST STRPTR)"PUBSCREEN"))) {
 			strncpy(wndPubScreen, value, sizeof(wndPubScreen));
 		}
 
-		if ((value = (char *)FindToolType((CONST_STRPTR *)appicon->do_ToolTypes, (CONST_STRPTR)"RTG320X240"))) {
+		if ((value = (char *)FindToolType((CONST STRPTR *)appicon->do_ToolTypes, (CONST STRPTR)"RTG320X240"))) {
 			rtg320x240 = TRUE;
 		}
 
@@ -366,7 +366,7 @@ static void ReadJoystick(ULONG port)
 			CONTROLLER_BUTTON_A,				// JPB_BUTTON_RED
 			CONTROLLER_BUTTON_B,				// JPB_BUTTON_BLUE
 		};
-		portstate >>= (JPB_BUTTON_PLAY - JPB_JOY_UP);
+		portstate >>= (JPB_BUTTON_PLAY - JPB_JOY_UP - 1);
 		for (int i = 0; i < 7; i++)
 		{
 			if (portstate & 1)
