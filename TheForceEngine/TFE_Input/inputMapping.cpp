@@ -309,6 +309,9 @@ namespace TFE_Input
 
 	bool inputMapping_isMovementAction(InputAction action)
 	{
+#ifdef __AMIGA__
+		if (action == IADF_USE) return true;
+#endif
 		return action >= IADF_FORWARD && action <= IADF_LOOK_DN;
 	}
 
